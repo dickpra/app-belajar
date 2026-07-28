@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Filament\Admin\Resources\EvaluasiResource\RelationManagers;
+
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Tables;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Str;
+
+class AnswersRelationManager extends RelationManager
+{
+    protected static string $relationship = 'answers';
+    protected static ?string $title = 'Rincian Jawaban Murid';
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('question.activity.module.title')
+                    ->label('Sumber Modul')
+                    ->description(fn ($record) => Str::limit(strip_tags($record->question->activity->title ?? ''), 30))
+                    ->limit(20)
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('question.question_text')
+                    ->label('Pertanyaan')
+                    ->formatStateUsing(fn ($state) => strip_tags($state))
+                    ->wrap(),
+
+                Tables\Columns\TextColumn::make('answer_value')
+                    ->label('Jawaban Diberikan')
+                    ->weight('bold'),
+
+                // MENAMPILKAN INDIKATOR BENAR / SALAH / MANUAL
+                Tables\Columns\TextColumn::make('is_correct')
+                    ->label('Status')
+                    ->badge()
+                    ->color(fn ($state) => match($state) {
+                        true => 'success',
+                        false => 'danger',
+                        default => 'warning',
+                    })
+                    ->formatStateUsing(fn ($state) => match($state) {
+                        true => 'Benar ✅',
+                        false => 'Salah ❌',
+                        default => 'Cek Manual ⚠️',
+                    }),
+            ])
+            // Kelompokkan tabel otomatis berdasarkan aktivitas
+            ->defaultGroup('question.activity.title')
+            ->defaultSort('created_at', 'asc');
+    }
+}
