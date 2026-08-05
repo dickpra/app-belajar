@@ -3,27 +3,16 @@
 namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\ModuleResource\Pages;
-use App\Filament\Admin\Resources\ModuleResource\RelationManagers;
 use App\Models\Module;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Forms\Components\Builder\Block;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Builder;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Checkbox;
-
+use AmidEsfahani\FilamentTinyEditor\TinyEditor;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class ModuleResource extends Resource
 {
@@ -43,20 +32,15 @@ class ModuleResource extends Resource
                         Forms\Components\TextInput::make('title')
                             ->required()
                             ->label('Judul Modul (Misal: Modul Minggu ke-8)'),
+                        
                         Forms\Components\Textarea::make('description')
                             ->label('Deskripsi Singkat (Opsional)'),
-
-                        Forms\Components\FileUpload::make('cover_image')
-                            ->image()
-                            ->directory('module-covers')
-                            ->label('Gambar Sampul Modul (Biar Menarik!)'),
                         
-                        // TAMBAHKAN KOLOM PIN DI SINI
                         Forms\Components\TextInput::make('access_pin')
                             ->label('PIN Akses Modul (Opsional)')
                             ->placeholder('Biarkan kosong jika tidak pakai PIN')
                             ->maxLength(6)
-                            ->numeric(), // Agar hanya bisa diisi angka
+                            ->numeric(),
                             
                         Forms\Components\Toggle::make('is_active')
                             ->default(true)
@@ -66,53 +50,120 @@ class ModuleResource extends Resource
                 // ==========================================
                 // LEVEL 1: REPEATER AKTIVITAS
                 // ==========================================
-                Repeater::make('activities')
-                    ->relationship() // Relasi Module -> Activities
+                Forms\Components\Repeater::make('activities')
+                    ->relationship('activities')
                     ->label('Daftar Aktivitas')
                     ->schema([
-                        TextInput::make('title')
+                        Forms\Components\TextInput::make('title')
                             ->required()
-                            ->label('Judul Aktivitas (Misal: Aktivitas 1.1 Mengamati Benda)'),
+                            ->label('Judul Aktivitas (Misal: Aktivitas 1: Mengamati Benda)'),
 
-                        // Konteks Utama (Gambar & Penjelasan yang berlaku untuk semua soal di bawahnya)
-                        Section::make('Konteks / Referensi Utama')
-                            ->description('Isi jika ada gambar atau cerita yang digunakan untuk menjawab beberapa soal sekaligus.')
+                        Forms\Components\Section::make('Metrik Penilaian (Untuk Dashboard Guru)')
+                            ->description('Centang kemampuan yang diukur pada aktivitas ini sesuai matriks kurikulum.')
                             ->schema([
-                                FileUpload::make('image')
-                                    ->image()
-                                    ->directory('activity-images')
-                                    ->label('Gambar Utama Aktivitas')
-                                            ->imageEditor() // Memunculkan tombol edit gambar bawaan
-                                            ->imagePreviewHeight('250') // Memperbesar kotak preview gambar
-                                            ->panelAspectRatio('2:1')
-                                            ->panelLayout('integrated')
-                                            ->directory('activity-images'), // sesuaikan directory-nya (activity / question)
-                                RichEditor::make('description')
-                                    ->label('Teks Penjelasan / Instruksi Utama'),
+                                Forms\Components\Grid::make(3)->schema([
+                                    Forms\Components\CheckboxList::make('assessment_metrics.numerasi')
+                                        ->label('Kemampuan Numerasi')
+                                        ->options([
+                                            'RL' => 'RL (Representasi Logis)',
+                                            'ML' => 'ML (Matematika Logis)',
+                                            'SL' => 'SL',
+                                            'PS' => 'PS',
+                                            'CiT' => 'CiT',
+                                            'DM' => 'DM',
+                                            'MP' => 'MP',
+                                            'CeT' => 'CeT',
+                                        ])
+                                        ->columns(2),
+
+                                    Forms\Components\CheckboxList::make('assessment_metrics.fase')
+                                        ->label('Fase')
+                                        ->options([
+                                            'Kon' => 'Kon (Konkret)',
+                                            'Pik' => 'Pik (Piktorial)',
+                                            'Abs' => 'Abs (Abstrak)',
+                                        ]),
+
+                                    Forms\Components\CheckboxList::make('assessment_metrics.steam')
+                                        ->label('STEAM')
+                                        ->options([
+                                            'S' => 'Science',
+                                            'T' => 'Technology',
+                                            'E' => 'Engineering',
+                                            'A' => 'Art',
+                                            'M' => 'Mathematics',
+                                        ]),
+                                ])
                             ])
                             ->collapsible()
-                            ->collapsed(), // Dibuat tertutup secara default agar form tidak terlalu panjang
+                            ->collapsed(true),
 
                         // ==========================================
-                        // LEVEL 2: REPEATER RENTETAN SOAL
+                        // GERBONG TAHAPAN (MATERI SEBELUM SOAL)
                         // ==========================================
-                        Repeater::make('questions')
-                            ->relationship() // Relasi Activity -> Questions
-                            ->label('Rentetan Soal')
+                        Forms\Components\Section::make('Materi Pembelajaran (Gerbong Tahapan)')
+                            ->description('Tambahkan tahapan materi (Mengamati, Diskusi, dll) sebelum murid masuk ke soal Ayo Berlatih.')
+                            ->schema([
+                                Forms\Components\Repeater::make('stages')
+                                    ->label('Daftar Tahapan')
+                                    ->schema([
+                                        Forms\Components\Select::make('tipe_tahapan')
+                                            ->label('Ikon & Judul Tahapan')
+                                            ->options([
+                                                'berpikir'  => '🤔 Berpikir / Pemantik',
+                                                'amati'     => '🔍 Ayo Mengamati',
+                                                'mencoba'   => '🧪 Mari Mencoba',
+                                                'diskusi'   => '💬 Ruang Diskusi',
+                                                'simpulkan' => '💡 Mari Menyimpulkan',
+                                                'materi'    => '📖 Bacaan Materi',
+                                            ])
+                                            ->required(),
+                                            
+                                        TinyEditor::make('konten_tahapan')
+                                            ->label('Isi Materi (Teks/Gambar)')
+                                            ->fileAttachmentsDisk('modul_rahasia') // UBAH KE LOCAL (Private)
+                                            ->fileAttachmentsVisibility('private') // Set visibility ke private
+                                            ->fileAttachmentsDirectory(function (Forms\Get $get) {
+                                                // Mengintip judul Modul (naik 3 level) dan judul Aktivitas (naik 2 level)
+                                                $modul = Str::slug($get('../../../title') ?? 'modul-baru');
+                                                $aktivitas = Str::slug($get('../../title') ?? 'aktivitas-baru');
+                                                return "modul_private/{$modul}/{$aktivitas}/tahapan";
+                                            })
+                                            ->profile('default')
+                                            // ->id(fn () => 'tiny-' . Str::random(5))
+                                            ->direction('auto')
+                                            ->required(),
+                                    ])
+                                    ->cloneable()
+                                    ->collapsible()
+                                    ->reorderableWithButtons()
+                                    ->collapsed(false)
+                                    ->itemLabel(fn (array $state): ?string => $state['tipe_tahapan'] ?? 'Tahapan Baru'),
+                            ]),
+
+                        // ==========================================
+                        // LEVEL 2: REPEATER SOAL (AYO BERLATIH)
+                        // ==========================================
+                        Forms\Components\Repeater::make('questions')
+                            ->relationship('questions')
+                            ->label('Rentetan Soal (Ayo Berlatih)')
                             ->schema([
                                 // PENGATURAN TIPE & LAYOUT
-                                Grid::make(2)->schema([
-                                    Select::make('answer_format')
+                                Forms\Components\Grid::make(2)->schema([
+                                    Forms\Components\Select::make('answer_format')
                                         ->options([
-                                            'multiple_choice' => 'Pilihan Ganda / Ceklis',
-                                            'number_input'    => 'Input Angka',
-                                            'text_input'      => 'Input Teks Singkat',
+                                            'multiple_choice'       => 'Pilihan Ganda / Ceklis',
+                                            'number_input'          => 'Input Angka Tunggal',
+                                            'text_input'            => 'Input Teks Singkat',
+                                            'matching'              => 'Tarik Garis / Menjodohkan',
+                                            'true_false_correction' => 'Benar/Salah + Teks Perbaikan',
+                                            'complex_fill'          => 'Isian Rumpang (Banyak Titik-titik)',
                                         ])
                                         ->required()
                                         ->live()
                                         ->label('Tipe Jawaban'),
 
-                                    Select::make('layout_position')
+                                    Forms\Components\Select::make('layout_position')
                                         ->options([
                                             'image_left'   => 'Gambar di Kiri, Soal di Kanan',
                                             'image_right'  => 'Soal di Kiri, Gambar di Kanan',
@@ -121,69 +172,82 @@ class ModuleResource extends Resource
                                         ])
                                         ->default('image_left')
                                         ->required()
-                                        ->live()
                                         ->label('Posisi Gambar Spesifik Soal'),
                                 ]),
 
                                 // KONTEN SOAL
-                                Section::make('Konten Pertanyaan')
+                                Forms\Components\Section::make('Konten Pertanyaan')
                                     ->schema([
-                                        FileUpload::make('image')
+                                        Forms\Components\FileUpload::make('image')
                                             ->image()
-                                            ->imageEditor() // Memunculkan tombol edit gambar bawaan
-                                            ->imagePreviewHeight('250') // Memperbesar kotak preview gambar
-                                            ->panelAspectRatio('2:1')
-                                            ->panelLayout('integrated')
-                                            ->directory('activity-images') // sesuaikan directory-nya (activity / question)
-                                            ->label('Gambar Upload'),
+                                            ->disk('modul_rahasia') // UBAH KE LOCAL (Private)
+                                            ->visibility('private')
+                                            ->directory(function (Forms\Get $get) {
+                                                // Mengintip judul Modul (naik 3 level) dan judul Aktivitas (naik 2 level)
+                                                $modul = Str::slug($get('../../../title') ?? 'modul-baru');
+                                                $aktivitas = Str::slug($get('../../title') ?? 'aktivitas-baru');
+                                                return "modul_private/{$modul}/{$aktivitas}/soal";
+                                            })
+                                            ->label('Gambar Khusus Soal Ini (Bila Ada)'),
 
-                                        RichEditor::make('question_text')
+                                        Forms\Components\RichEditor::make('question_text')
                                             ->required()
                                             ->label('Teks Pertanyaan')
-                                            ->live(debounce: 500),
+                                            ->toolbarButtons(['bold', 'italic', 'underline', 'h3', 'bulletList']),
                                     ])->columns(2),
+                                
+                                Forms\Components\Section::make('Kunci Jawaban & Pembahasan')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('correct_answer')
+                                            ->label('Kunci Jawaban Pasti')
+                                            ->placeholder('Misal: 32 (untuk angka) atau "3 puluhan" (untuk teks)')
+                                            ->visible(fn (\Filament\Forms\Get $get) => in_array($get('answer_format'), ['number_input', 'text_input']))
+                                            ->required(fn (\Filament\Forms\Get $get) => in_array($get('answer_format'), ['number_input', 'text_input'])),
 
-                                // OPSI JAWABAN (Hanya muncul jika pilihan ganda)
-                                Repeater::make('options')
-                                    ->schema([
-                                        TextInput::make('teks_pilihan')
-                                            ->required()
-                                            ->label('Teks Opsi')
-                                            ->live(debounce: 500),
-                                        Checkbox::make('is_correct')
-                                            ->label('Jawaban Benar?'),
-                                    ])
-                                    ->columns(2)
-                                    ->label('Pilihan Jawaban')
-                                    ->visible(fn (\Filament\Forms\Get $get): bool => $get('answer_format') === 'multiple_choice'),
-                                // ==========================================
-                                // KOTAK PREVIEW TAMPILAN MURID
-                                // ==========================================
-                                Section::make('Pratinjau Tampilan Murid')
-                                    ->schema([
-                                        Placeholder::make('preview')
-                                            ->hiddenLabel()
-                                            ->content(function (\Filament\Forms\Get $get) {
-                                                return view('filament.components.preview-soal', [
-                                                    'layout' => $get('layout_position'),
-                                                    'teks'   => $get('question_text'),
-                                                    'tipe'   => $get('answer_format'),
-                                                    'opsi'   => $get('options'),
-                                                    'gambar' => $get('image'),
-                                                ]);
-                                            })
+                                        Forms\Components\Placeholder::make('pg_notice')
+                                            ->label('Info Kunci Jawaban')
+                                            ->content('Untuk soal Pilihan Ganda / Menjodohkan, silakan centang kotak "Jawaban Benar?" pada opsi di bawah.')
+                                            ->visible(fn (\Filament\Forms\Get $get) => in_array($get('answer_format'), ['multiple_choice', 'matching', 'true_false_correction'])),
+
+                                        Forms\Components\Textarea::make('answer_explanation')
+                                            ->label('Catatan Pembahasan (Opsional)')
+                                            ->placeholder('Penjelasan kenapa jawaban ini benar, akan muncul setelah murid selesai ujian.')
+                                            ->rows(2),
                                     ])
                                     ->collapsible()
-                                    ->collapsed(), // Ditutup default agar guru buka hanya saat butuh
+                                    ->collapsed(false),
+
+                                // OPSI JAWABAN
+                                Forms\Components\Repeater::make('options')
+                                    ->label('Konfigurasi Jawaban & Opsi')
+                                    ->schema([
+                                        Forms\Components\TextInput::make('teks_pilihan')
+                                            ->required()
+                                            ->label(fn (\Filament\Forms\Get $get) => $get('../../answer_format') === 'matching' ? 'Teks Sisi Kiri (Misal: 5 Puluhan)' : 'Teks Opsi / Jawaban'),
+
+                                        Forms\Components\TextInput::make('matching_right')
+                                            ->label('Teks Sisi Kanan (Pasangannya)')
+                                            ->visible(fn (\Filament\Forms\Get $get) => $get('../../answer_format') === 'matching')
+                                            ->required(fn (\Filament\Forms\Get $get) => $get('../../answer_format') === 'matching'),
+
+                                        Forms\Components\Checkbox::make('is_correct')
+                                            ->label('Ini Jawaban Benar?')
+                                            ->visible(fn (\Filament\Forms\Get $get) => $get('../../answer_format') === 'multiple_choice'),
+                                    ])
+                                    ->columns(2)
+                                    ->cloneable()
+                                    ->visible(fn (\Filament\Forms\Get $get) => in_array($get('answer_format'), ['multiple_choice', 'matching', 'true_false_correction', 'complex_fill'])),
                             ])
                             ->itemLabel(fn (array $state): ?string => strip_tags($state['question_text'] ?? 'Soal Baru'))
                             ->collapsible()
-                            ->reorderable()
+                            ->collapsed()
                             ->cloneable()
+                            ->reorderable()
                             ->columnSpanFull(),
                     ])
                     ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Aktivitas Baru')
                     ->collapsible()
+                    ->cloneable()
                     ->reorderable()
                     ->columnSpanFull(),
             ]);
@@ -199,6 +263,79 @@ class ModuleResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                
+                // ==========================================
+                // TOMBOL EXPORT ZIP (JSON + GAMBAR)
+                // ==========================================
+                Tables\Actions\Action::make('export_zip')
+                    ->label('Export ZIP')
+                    ->icon('heroicon-o-archive-box-arrow-down')
+                    ->color('success')
+                    ->action(function (\App\Models\Module $record) {
+                        $moduleData = $record->load(['activities.questions'])->toArray();
+                        $jsonContent = json_encode($moduleData, JSON_PRETTY_PRINT);
+
+                        $zipFileName = 'Backup_Modul_' . $record->id . '_' . date('Ymd_His') . '.zip';
+                        $zipPath = storage_path('app/' . $zipFileName);
+                        $zip = new \ZipArchive();
+
+                        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
+                            $zip->addFromString('database_modul.json', $jsonContent);
+                            $filesToZip = [];
+
+                            $extractHtmlImages = function($html) use (&$filesToZip) {
+                                if (!$html) return;
+                                preg_match_all('/src=".*?\/storage\/([^"]+)"/', $html, $matches);
+                                if (!empty($matches[1])) {
+                                    foreach ($matches[1] as $img) {
+                                        $filesToZip[] = urldecode($img);
+                                    }
+                                }
+                            };
+
+                            foreach ($record->activities as $activity) {
+                                if (isset($activity->image) && $activity->image) $filesToZip[] = $activity->image;
+                                if (isset($activity->sign_language_video) && $activity->sign_language_video) $filesToZip[] = $activity->sign_language_video;
+                                
+                                // Ekstrak gambar dari deskripsi (jika masih ada data lama)
+                                if (isset($activity->description)) {
+                                    $extractHtmlImages($activity->description);
+                                }
+
+                                // Ekstrak gambar dari gerbong tahapan baru
+                                if (isset($activity->stages) && is_array($activity->stages)) {
+                                    foreach ($activity->stages as $stage) {
+                                        if (isset($stage['konten_tahapan'])) {
+                                            $extractHtmlImages($stage['konten_tahapan']);
+                                        }
+                                    }
+                                }
+
+                                foreach ($activity->questions as $question) {
+                                    if (isset($question->image) && $question->image) $filesToZip[] = $question->image;
+                                    if (isset($question->sign_language_video) && $question->sign_language_video) $filesToZip[] = $question->sign_language_video;
+                                    
+                                    if (isset($question->question_text)) {
+                                        $extractHtmlImages($question->question_text);
+                                    }
+                                }
+                            }
+
+                            $filesToZip = array_unique($filesToZip); 
+                            
+                            foreach ($filesToZip as $filePath) {
+                                $fullPath = storage_path('app/public/' . $filePath);
+                                if (File::exists($fullPath)) {
+                                    $zip->addFile($fullPath, 'images/' . $filePath); 
+                                }
+                            }
+
+                            $zip->close();
+                            return response()->download($zipPath)->deleteFileAfterSend(true);
+                        }
+                    }),
+                    
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),

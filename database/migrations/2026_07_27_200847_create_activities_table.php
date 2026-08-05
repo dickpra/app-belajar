@@ -15,8 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('module_id')->constrained()->cascadeOnDelete();
             $table->string('title'); // Menggantikan 'activity_title' yang tersesat di questions
-            $table->text('description')->nullable(); // Teks penjelasan/instruksi
+            $table->string('stage_type')->default('materi'); // Materi, Praktek, Pembelajaran
+            $table->longText('description')->nullable(); // Teks penjelasan/instruksi
+            $table->json('stages')->nullable();
+            $table->json('assessment_metrics')->nullable();
             $table->string('image')->nullable();     // Gambar utama
+            $table->string('sign_language_video')->nullable();
             $table->timestamps();
         });
     }

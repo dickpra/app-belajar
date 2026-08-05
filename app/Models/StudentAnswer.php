@@ -22,23 +22,30 @@ class StudentAnswer extends Model
         return $this->belongsTo(Question::class);
     }
 
+    // Di dalam app/Models/StudentAnswer.php
+
     public function getIsCorrectAttribute()
     {
-        $question = $this->question;
-        if (!$question) return null;
+        $question = $this->question; // Asumsi ada relasi belongsTo Question
 
-        // Jika soal pilihan ganda, koreksi otomatis!
-        if ($question->answer_format === 'multiple_choice') {
-            $options = $question->options ?? [];
-            $correctOption = collect($options)->firstWhere('is_correct', true);
-            
-            if ($correctOption) {
-                return $correctOption['teks_pilihan'] === $this->answer_value;
+        // 1. Cek jika soal adalah Pilihan Ganda
+        if (in_array($question->answer_format, ['multiple_choice', 'true_false_correction'])) {
+            foreach ($question->options as $option) {
+                // Jika teks jawaban murid cocok dengan teks opsi AND opsi itu is_correct = true
+                if ($this->answer_value == $option['teks_pilihan'] && isset($option['is_correct']) && $option['is_correct']) {
+                    return true;
+                }
             }
             return false;
         }
-        
-        // Jika soal isian/angka, kembalikan 'null' (tanda butuh cek manual)
+
+        // 2. Cek jika soal adalah Input Angka / Teks
+        if (in_array($question->answer_format, ['number_input', 'text_input'])) {
+            // Cek apakah jawaban murid sama persis dengan kunci jawaban (mengabaikan huruf besar/kecil)
+            return strtolower(trim($this->answer_value)) === strtolower(trim($question->correct_answer));
+        }
+
+        // Default jika tipe aneh atau butuh koreksi manual guru
         return null; 
     }
 }

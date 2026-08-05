@@ -10,7 +10,7 @@ class Activity extends Model
     use HasFactory;
 
     protected $guarded = [];
-
+    protected $casts = ['stages' => 'array', 'assessment_metrics' => 'array'];
 
     public function module()
     {

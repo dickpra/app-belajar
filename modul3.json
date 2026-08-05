@@ -1,0 +1,94 @@
+{
+  "code": "1.1",
+  "title": "Mengelompokkan Benda ke dalam Wadah Berkapasitas 10",
+  "objective": "Melalui penggunaan benda konkret, siswa mampu membentuk kelompok puluhan dengan cara mengelompokkan benda ke dalam wadah yang masing-masing berisi 10 benda.",
+  "learning_steps": [
+    "Guru menampilkan kartu bergambar: satu wadah penuh berisi 10 benda dan beberapa benda di luar wadah.",
+    "Guru menunjuk wadah penuh, lalu menampilkan kartu angka \"10\" dan mengangkat 1 jari. Pesan visual: 1 wadah penuh = 10 = 1 puluhan.",
+    "Guru mendemonstrasikan mengisi wadah satu per satu hingga berisi 10 benda, lalu menutup wadah dengan telapak tangan sebagai tanda wadah sudah penuh. (Tanpa penjelasan lisan.)",
+    "Siswa menerima 3 kartu bilangan: 30, 34, dan 47. Setiap kartu berisi angka dan gambar.",
+    "Siswa menyusun biji atau kancing ke dalam wadah sesuai bilangan pada kartu. Setelah selesai, siswa mengisi tabel di LKPD: jumlah wadah penuh, jumlah sisa benda, dan jumlah seluruh benda.",
+    "Guru berkeliling mengamati. Jika benar, guru memberi tanda jempol. Jika belum benar, guru menunjuk bagian yang perlu diperbaiki.",
+    "Di akhir kegiatan, guru menunjukkan kartu konsep bergambar: \"1 wadah penuh = 1 puluhan = 10 benda.\""
+  ],
+  "trigger_questions": [
+    {
+      "title": "Kartu 1",
+      "content": "Gambar banyak benda berserakan → gambar benda yang sama sudah dikelompokkan rapi.",
+      "question": "Mana yang lebih mudah dihitung?"
+    },
+    {
+      "title": "Kartu 2",
+      "content": "Gambar satu wadah penuh + angka 10.",
+      "question": "Kalau wadah sudah penuh, apa perlu dihitung lagi?"
+    },
+    {
+      "title": "Kartu 3",
+      "content": "Gambar dua wadah penuh + 4 benda di luar + angka 24.",
+      "question": "Mengapa hasilnya 24?"
+    }
+  ],
+  "observation": {
+    "title": "Ayo Mengamati dan Kegiatan Bersama Guru",
+    "introduction": "Untuk menghitung banyak benda, kita dapat mengelompokkan setiap 10 benda. Ayo amati gambar berikut!",
+    "examples": [
+      "Satu kotak berisi 10 penghapus",
+      "Satu wadah berisi 10 telur",
+      "Satu ikat berisi 10 pensil",
+      "Satu wadah berisi 10 stroberi",
+      "Satu kotak berisi 10 donat",
+      "Satu susun berisi 10 balok"
+    ],
+    "description": [
+      "Perhatikan gambar di atas bersama gurumu. Amati setiap kelompok benda dengan saksama.",
+      "Setiap kelompok terdiri atas 10 benda, seperti 10 penghapus, 10 telur, 10 pensil, 10 stroberi, 10 donat, dan 10 balok.",
+      "Diskusikan bersama guru mengapa benda-benda tersebut dikelompokkan menjadi 10.",
+      "Guru akan menjelaskan bahwa 10 benda yang dikelompokkan menjadi satu disebut 1 puluhan.",
+      "Dengan mengelompokkan benda, kita dapat menghitung jumlah benda dengan lebih mudah dan lebih cepat."
+    ],
+    "activities": [
+      "Amati gambar bersama guru.",
+      "Sebutkan nama setiap kelompok benda yang kamu lihat.",
+      "Hitung bersama guru banyak benda pada setiap kelompok.",
+      "Jawablah pertanyaan guru.",
+      "Bersama guru, simpulkan bahwa 10 benda yang dikelompokkan menjadi satu disebut 1 puluhan.",
+      "Carilah benda lain di kelas yang dapat dikelompokkan menjadi 10 benda, lalu hitung bersama guru dan teman-teman."
+    ],
+    "teacher_questions": [
+      "Berapa jumlah penghapus dalam satu kotak?",
+      "Berapa jumlah telur dalam satu wadah?",
+      "Berapa jumlah pensil dalam satu ikat?",
+      "Berapa jumlah stroberi dalam satu wadah?",
+      "Berapa jumlah donat dalam satu kotak?",
+      "Berapa jumlah balok dalam satu susun?"
+    ]
+  },
+  "important_concepts": [
+    {
+      "title": "Puluhan sebagai Satu Unit",
+      "content": "Sepuluh satuan dapat digabungkan menjadi satu puluhan."
+    },
+    {
+      "title": "Nilai Tempat",
+      "content": "Setiap bilangan dua digit tersusun atas digit puluhan dan digit satuan."
+    },
+    {
+      "title": "Komposisi Bilangan",
+      "content": "Bilangan dapat diuraikan menjadi gabungan sejumlah puluhan dan sejumlah satuan."
+    }
+  ],
+  "exercises": [
+    {
+      "number": 1,
+      "question": "Berapa banyak bola semuanya?"
+    },
+    {
+      "number": 2,
+      "question": "Bilangan yang terbentuk adalah ________"
+    },
+    {
+      "number": 3,
+      "question": "Berapa banyak kelereng semuanya?"
+    }
+  ]
+}

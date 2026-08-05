@@ -36,6 +36,16 @@ return [
             'throw' => false,
         ],
 
+        // ==========================================
+        // TAMBAHKAN DISK INI
+        // ==========================================
+        'modul_rahasia' => [
+            'driver' => 'local',
+            'root' => storage_path('app'), // Tetap simpan di folder aman
+            'url' => env('APP_URL').'/private-image', // OTOMATIS DIARAHKAN KE SATPAM KITA!
+            'visibility' => 'private',
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

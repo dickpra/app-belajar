@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('cover_image')->nullable();
             $table->string('access_pin', 6)->nullable();
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_adaptive')->default(false);
             $table->timestamps();
         });
     }
