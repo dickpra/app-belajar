@@ -50,6 +50,27 @@ class AnswersRelationManager extends RelationManager
                         default => 'Cek Manual ⚠️',
                     }),
             ])
+            ->headerActions([
+            Tables\Actions\Action::make('reset_modul')
+                ->label('🔄 Reset Jawaban Modul Ini')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Reset Jawaban Murid?')
+                ->modalDescription('Apakah Anda yakin ingin menghapus semua jawaban murid ini di modul terkait? Murid harus mengulang mengerjakan dari awal.')
+                ->action(function (\Filament\Resources\RelationManagers\RelationManager $livewire) {
+                    // Ambil ID Murid dari relasi halaman saat ini
+                    $studentId = $livewire->ownerRecord->id;
+                    
+                    // Eksekusi: Hapus semua jawaban murid ini
+                    // (Anda bisa memfilter berdasarkan modul_id jika ingin lebih spesifik)
+                    \App\Models\StudentAnswer::where('student_id', $studentId)->delete();
+                    
+                    \Filament\Notifications\Notification::make()
+                        ->title('Jawaban Berhasil Direset!')
+                        ->success()
+                        ->send();
+                }),
+        ])
             // Kelompokkan tabel otomatis berdasarkan aktivitas
             ->defaultGroup('question.activity.title')
             ->defaultSort('created_at', 'asc');

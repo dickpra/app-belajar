@@ -41,6 +41,10 @@ class ModuleResource extends Resource
                             ->placeholder('Biarkan kosong jika tidak pakai PIN')
                             ->maxLength(6)
                             ->numeric(),
+
+                        Forms\Components\Toggle::make('is_adaptive')
+                            ->label('🤖 Aktifkan Mode Pembelajaran Adaptif?')
+                            ->helperText('Jika aktif, sistem akan menyeleksi tingkat kesulitan soal secara otomatis berdasarkan kepintaran murid.'),
                             
                         Forms\Components\Toggle::make('is_active')
                             ->default(true)
@@ -121,16 +125,14 @@ class ModuleResource extends Resource
                                             
                                         TinyEditor::make('konten_tahapan')
                                             ->label('Isi Materi (Teks/Gambar)')
-                                            ->fileAttachmentsDisk('modul_rahasia') // UBAH KE LOCAL (Private)
-                                            ->fileAttachmentsVisibility('private') // Set visibility ke private
+                                            ->fileAttachmentsDisk('modul_rahasia') 
+                                            ->fileAttachmentsVisibility('private') 
                                             ->fileAttachmentsDirectory(function (Forms\Get $get) {
-                                                // Mengintip judul Modul (naik 3 level) dan judul Aktivitas (naik 2 level)
                                                 $modul = Str::slug($get('../../../title') ?? 'modul-baru');
                                                 $aktivitas = Str::slug($get('../../title') ?? 'aktivitas-baru');
                                                 return "modul_private/{$modul}/{$aktivitas}/tahapan";
                                             })
                                             ->profile('default')
-                                            // ->id(fn () => 'tiny-' . Str::random(5))
                                             ->direction('auto')
                                             ->required(),
                                     ])
@@ -148,14 +150,13 @@ class ModuleResource extends Resource
                             ->relationship('questions')
                             ->label('Rentetan Soal (Ayo Berlatih)')
                             ->schema([
-                                // PENGATURAN TIPE & LAYOUT
                                 Forms\Components\Grid::make(2)->schema([
                                     Forms\Components\Select::make('answer_format')
                                         ->options([
-                                            'multiple_choice'       => 'Pilihan Ganda / Ceklis',
+                                            'multiple_choice'       => 'Pilihan Ganda (Teks / Gambar)',
                                             'number_input'          => 'Input Angka Tunggal',
                                             'text_input'            => 'Input Teks Singkat',
-                                            'matching'              => 'Tarik Garis / Menjodohkan',
+                                            'matching'              => 'Menjodohkan (Kiri & Kanan)',
                                             'true_false_correction' => 'Benar/Salah + Teks Perbaikan',
                                             'complex_fill'          => 'Isian Rumpang (Banyak Titik-titik)',
                                         ])
@@ -165,84 +166,164 @@ class ModuleResource extends Resource
 
                                     Forms\Components\Select::make('layout_position')
                                         ->options([
-                                            'image_left'   => 'Gambar di Kiri, Soal di Kanan',
-                                            'image_right'  => 'Soal di Kiri, Gambar di Kanan',
-                                            'image_top'    => 'Gambar di Atas, Soal di Bawah',
-                                            'image_bottom' => 'Soal di Atas, Gambar di Bawah',
+                                            'image_left'   => 'Gambar Utama di Kiri',
+                                            'image_right'  => 'Gambar Utama di Kanan',
+                                            'image_top'    => 'Gambar Utama di Atas',
+                                            'image_bottom' => 'Gambar Utama di Bawah',
                                         ])
-                                        ->default('image_left')
+                                        ->default('image_top')
                                         ->required()
-                                        ->label('Posisi Gambar Spesifik Soal'),
+                                        ->label('Posisi Gambar Utama'),
+                                    
+                                    Forms\Components\Select::make('difficulty')
+                                        ->options([
+                                            'easy' => '🌟 Rendah (Mudah)',
+                                            'medium' => '⭐⭐ Sedang (Menengah)',
+                                            'hard'  => '🔥 Sulit (HOTS)',
+                                        ])
+                                        ->default('medium')
+                                        ->required()
+                                        ->label('Tingkat Kesulitan Soal'),
                                 ]),
 
-                                // KONTEN SOAL
                                 Forms\Components\Section::make('Konten Pertanyaan')
                                     ->schema([
                                         Forms\Components\FileUpload::make('image')
                                             ->image()
-                                            ->disk('modul_rahasia') // UBAH KE LOCAL (Private)
+                                            ->optimize('webp')
+                                            ->imageEditor()
+                                            ->disk('modul_rahasia')
                                             ->visibility('private')
                                             ->directory(function (Forms\Get $get) {
-                                                // Mengintip judul Modul (naik 3 level) dan judul Aktivitas (naik 2 level)
-                                                $modul = Str::slug($get('../../../title') ?? 'modul-baru');
-                                                $aktivitas = Str::slug($get('../../title') ?? 'aktivitas-baru');
-                                                return "modul_private/{$modul}/{$aktivitas}/soal";
+                                                $modul = \Illuminate\Support\Str::slug($get('../../../title') ?? 'modul-baru');
+                                                $aktivitas = \Illuminate\Support\Str::slug($get('../../title') ?? 'aktivitas-baru');
+                                                return "modul_private/{$modul}/{$aktivitas}/soal_thumbnail";
                                             })
-                                            ->label('Gambar Khusus Soal Ini (Bila Ada)'),
+                                            ->label('Gambar Utama Soal (Opsional)'),
 
+                                        // KEMBALI MENGGUNAKAN RICH EDITOR BAWAAN FILAMENT
                                         Forms\Components\RichEditor::make('question_text')
-                                            ->required()
-                                            ->label('Teks Pertanyaan')
-                                            ->toolbarButtons(['bold', 'italic', 'underline', 'h3', 'bulletList']),
-                                    ])->columns(2),
+                                            ->label('Teks Pertanyaan (Bisa sisip banyak gambar)')
+                                            ->fileAttachmentsDisk('modul_rahasia')
+                                            ->fileAttachmentsVisibility('private')
+                                            ->fileAttachmentsDirectory(function (Forms\Get $get) {
+                                                $modul = \Illuminate\Support\Str::slug($get('../../../title') ?? 'modul-baru');
+                                                $aktivitas = \Illuminate\Support\Str::slug($get('../../title') ?? 'aktivitas-baru');
+                                                return "modul_private/{$modul}/{$aktivitas}/soal_sisipan";
+                                            })
+                                            ->toolbarButtons(['bold', 'italic', 'underline', 'strike', 'link', 'h3', 'bulletList', 'orderedList', 'attachFiles'])
+                                            ->required(),
+                                    ])->columns(1),
                                 
+                                // ==========================================
+                                // AREA KUNCI JAWABAN (SUPER DINAMIS & PINTAR)
+                                // ==========================================
                                 Forms\Components\Section::make('Kunci Jawaban & Pembahasan')
                                     ->schema([
+                                        
+                                        // A. KUNCI JAWABAN PASTI (Hanya untuk Teks & Angka)
                                         Forms\Components\TextInput::make('correct_answer')
                                             ->label('Kunci Jawaban Pasti')
-                                            ->placeholder('Misal: 32 (untuk angka) atau "3 puluhan" (untuk teks)')
+                                            ->placeholder('Contoh: 25 (untuk angka) atau "Matahari" (untuk teks)')
                                             ->visible(fn (\Filament\Forms\Get $get) => in_array($get('answer_format'), ['number_input', 'text_input']))
                                             ->required(fn (\Filament\Forms\Get $get) => in_array($get('answer_format'), ['number_input', 'text_input'])),
 
-                                        Forms\Components\Placeholder::make('pg_notice')
-                                            ->label('Info Kunci Jawaban')
-                                            ->content('Untuk soal Pilihan Ganda / Menjodohkan, silakan centang kotak "Jawaban Benar?" pada opsi di bawah.')
-                                            ->visible(fn (\Filament\Forms\Get $get) => in_array($get('answer_format'), ['multiple_choice', 'matching', 'true_false_correction'])),
+                                        // B. KUNCI JAWABAN BENAR/SALAH (Khusus true_false_correction)
+                                        Forms\Components\Select::make('true_false_answer')
+                                            ->label('Kunci Jawaban yang Tepat')
+                                            ->options([
+                                                'Benar' => 'Pernyataan ini BENAR',
+                                                'Salah' => 'Pernyataan ini SALAH',
+                                            ])
+                                            ->visible(fn (\Filament\Forms\Get $get) => $get('answer_format') === 'true_false_correction')
+                                            ->required(fn (\Filament\Forms\Get $get) => $get('answer_format') === 'true_false_correction')
+                                            ->live(),
 
-                                        Forms\Components\Textarea::make('answer_explanation')
+                                        Forms\Components\TextInput::make('correction_text')
+                                            ->label('Teks Perbaikan (Wajib diisi jika kuncinya "SALAH")')
+                                            ->placeholder('Misal: Yang benar adalah 3 puluhan 8 satuan')
+                                            ->visible(fn (\Filament\Forms\Get $get) => $get('answer_format') === 'true_false_correction' && $get('true_false_answer') === 'Salah')
+                                            ->required(fn (\Filament\Forms\Get $get) => $get('answer_format') === 'true_false_correction' && $get('true_false_answer') === 'Salah'),
+
+                                        // C. PETUNJUK DINAMIS UNTUK SOAL OPSI (PG, Menjodohkan, Isian Rumpang)
+                                        Forms\Components\Placeholder::make('pg_notice')
+                                            ->label('Cara Menentukan Kunci Jawaban')
+                                            ->content(function (\Filament\Forms\Get $get) {
+                                                return match ($get('answer_format')) {
+                                                    'multiple_choice' => '👇 Tambahkan opsi di bawah, lalu centang kotak "⭐ Ini Jawaban Benar". (Boleh centang lebih dari 1 untuk Pilihan Ganda Kompleks).',
+                                                    'matching' => '👇 Tuliskan pasangan yang BENAR secara sejajar di kolom Kiri dan Kanan pada bagian opsi di bawah. Tidak perlu dicentang. Sistem akan mengacak posisi kanan otomatis.',
+                                                    'complex_fill' => '👇 Tambahkan daftar kata jawaban yang benar secara BERURUTAN dari atas ke bawah di bagian opsi. Tidak perlu dicentang.',
+                                                    default => 'Pilih tipe jawaban terlebih dahulu di atas.',
+                                                };
+                                            })
+                                            ->visible(fn (\Filament\Forms\Get $get) => in_array($get('answer_format'), ['multiple_choice', 'matching', 'complex_fill'])),
+
+                                        // D. KOTAK PEMBAHASAN
+                                        Forms\Components\RichEditor::make('answer_explanation')
                                             ->label('Catatan Pembahasan (Opsional)')
-                                            ->placeholder('Penjelasan kenapa jawaban ini benar, akan muncul setelah murid selesai ujian.')
-                                            ->rows(2),
+                                            ->placeholder('Tuliskan penjelasan mengapa jawaban ini benar. Penjelasan ini bisa ditampilkan ke murid setelah evaluasi.')
+                                            ->toolbarButtons(['bold', 'italic', 'underline', 'bulletList', 'orderedList'])
+                                            ->columnSpanFull(),
+                                            
                                     ])
+                                    ->columns(1)
                                     ->collapsible()
                                     ->collapsed(false),
 
-                                // OPSI JAWABAN
+                                // ==========================================
+                                // UPGRADE OPSI JAWABAN (OTOMATIS HILANG JIKA TIDAK BUTUH OPSI)
+                                // ==========================================
                                 Forms\Components\Repeater::make('options')
-                                    ->label('Konfigurasi Jawaban & Opsi')
+                                    ->label('Konfigurasi Pilihan Jawaban')
                                     ->schema([
-                                        Forms\Components\TextInput::make('teks_pilihan')
-                                            ->required()
-                                            ->label(fn (\Filament\Forms\Get $get) => $get('../../answer_format') === 'matching' ? 'Teks Sisi Kiri (Misal: 5 Puluhan)' : 'Teks Opsi / Jawaban'),
+                                        Forms\Components\Section::make(fn (\Filament\Forms\Get $get) => $get('../../answer_format') === 'matching' ? 'Sisi Kiri' : 'Opsi Jawaban')
+                                            ->schema([
+                                                Forms\Components\TextInput::make('teks_pilihan')
+                                                    ->label(fn (\Filament\Forms\Get $get) => $get('../../answer_format') === 'complex_fill' ? 'Kata Jawaban (Sesuai Urutan)' : 'Teks Opsi (Kosongkan jika hanya gambar)'),
+                                                
+                                                Forms\Components\FileUpload::make('image_pilihan')
+                                                    ->image()
+                                                    ->optimize('webp')
+                                                    ->imageEditor()
+                                                    ->disk('modul_rahasia')
+                                                    ->directory('modul_private/opsi_jawaban')
+                                                    ->label('Gambar Opsi (Opsional)')
+                                                    ->visible(fn (\Filament\Forms\Get $get) => $get('../../answer_format') !== 'complex_fill'), // Disembunyikan untuk isian rumpang
+                                            ])->columns(2),
 
-                                        Forms\Components\TextInput::make('matching_right')
-                                            ->label('Teks Sisi Kanan (Pasangannya)')
-                                            ->visible(fn (\Filament\Forms\Get $get) => $get('../../answer_format') === 'matching')
-                                            ->required(fn (\Filament\Forms\Get $get) => $get('../../answer_format') === 'matching'),
+                                        Forms\Components\Section::make('Sisi Kanan (Pasangannya)')
+                                            ->schema([
+                                                Forms\Components\TextInput::make('matching_right')
+                                                    ->label('Teks Pasangan (Kosongkan jika hanya gambar)'),
+                                                
+                                                Forms\Components\FileUpload::make('image_matching_right')
+                                                    ->image()
+                                                    ->optimize('webp')
+                                                    ->imageEditor()
+                                                    ->disk('modul_rahasia')
+                                                    ->directory('modul_private/opsi_jawaban')
+                                                    ->label('Gambar Pasangan (Opsional)'),
+                                            ])
+                                            ->columns(2)
+                                            ->visible(fn (\Filament\Forms\Get $get) => $get('../../answer_format') === 'matching'),
 
                                         Forms\Components\Checkbox::make('is_correct')
-                                            ->label('Ini Jawaban Benar?')
+                                            ->label('⭐ Ini Adalah Jawaban Benar')
                                             ->visible(fn (\Filament\Forms\Get $get) => $get('../../answer_format') === 'multiple_choice'),
                                     ])
-                                    ->columns(2)
                                     ->cloneable()
-                                    ->visible(fn (\Filament\Forms\Get $get) => in_array($get('answer_format'), ['multiple_choice', 'matching', 'true_false_correction', 'complex_fill'])),
+                                    ->reorderableWithButtons() 
+                                    // REPEATER OPSI AKAN HILANG TOTAL JIKA ADMIN MEMILIH BENAR/SALAH, ANGKA, ATAU TEKS SINGKAT!
+                                    ->visible(fn (\Filament\Forms\Get $get) => in_array($get('answer_format'), ['multiple_choice', 'matching', 'complex_fill'])),
                             ])
-                            ->itemLabel(fn (array $state): ?string => strip_tags($state['question_text'] ?? 'Soal Baru'))
+                            ->itemLabel(function (array $state): ?string {
+                                $content = $state['question_text'] ?? null;
+                                return is_string($content) ? \Illuminate\Support\Str::limit(strip_tags($content), 40) : 'Soal Baru';
+                            })
                             ->collapsible()
                             ->collapsed()
                             ->cloneable()
-                            ->reorderable()
+                            ->reorderableWithButtons()
                             ->columnSpanFull(),
                     ])
                     ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Aktivitas Baru')
@@ -297,12 +378,10 @@ class ModuleResource extends Resource
                                 if (isset($activity->image) && $activity->image) $filesToZip[] = $activity->image;
                                 if (isset($activity->sign_language_video) && $activity->sign_language_video) $filesToZip[] = $activity->sign_language_video;
                                 
-                                // Ekstrak gambar dari deskripsi (jika masih ada data lama)
                                 if (isset($activity->description)) {
                                     $extractHtmlImages($activity->description);
                                 }
 
-                                // Ekstrak gambar dari gerbong tahapan baru
                                 if (isset($activity->stages) && is_array($activity->stages)) {
                                     foreach ($activity->stages as $stage) {
                                         if (isset($stage['konten_tahapan'])) {

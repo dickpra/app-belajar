@@ -20,7 +20,7 @@
         @keyframes slideOutLeft { from { transform: translateX(0); opacity: 1; } to { transform: translateX(-30%); opacity: 0; } }
         @keyframes slideInLeft { from { transform: translateX(-30%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        /* Styling TinyMCE DIKOMPRES agar lega di HP */
+        /* Styling Kompresi agar lega di HP */
         .prose ul { list-style-type: disc !important; padding-left: 1.25rem !important; margin-bottom: 0.5rem !important; }
         .prose ol { list-style-type: decimal !important; padding-left: 1.25rem !important; margin-bottom: 0.5rem !important; }
         .prose li { margin-bottom: 0.25rem !important; }
@@ -38,45 +38,43 @@
 <body class="text-slate-800 antialiased h-screen flex overflow-hidden bg-slate-50">
 
     @php
-        // 1. FUNGSI PENYULAP URL PRIVATE
-        function renderPrivateImages($htmlContent) {
-            if (!$htmlContent) return '';
-            return preg_replace('/src=".*?modul_private\/(.*?)"/i', 'src="' . url('/private-image/modul_private/$1') . '"', $htmlContent);
+        // PELINDUNG 1: Cek apakah fungsi sudah ada sebelum dibuat
+        if (!function_exists('renderPrivateImages')) {
+            function renderPrivateImages($htmlContent) {
+                if (!$htmlContent) return '';
+                return preg_replace('/src=".*?modul_private\/(.*?)"/i', 'src="' . url('/private-image/modul_private/$1') . '"', $htmlContent);
+            }
         }
 
-        // 2. FUNGSI TEMA TAHAPAN DINAMIS
-        function getStageStyle($stage) {
-            return match($stage) {
-                'berpikir'  => ['icon' => '🤔', 'text' => 'Pemantik', 'color' => 'bg-purple-400 text-purple-900 border-purple-200'],
-                'amati'     => ['icon' => '🔍', 'text' => 'Mengamati', 'color' => 'bg-blue-400 text-blue-900 border-blue-200'],
-                'mencoba'   => ['icon' => '🧪', 'text' => 'Mencoba', 'color' => 'bg-orange-400 text-orange-900 border-orange-200'],
-                'diskusi'   => ['icon' => '💬', 'text' => 'Diskusi', 'color' => 'bg-pink-400 text-pink-900 border-pink-200'],
-                'simpulkan' => ['icon' => '💡', 'text' => 'Menyimpulkan', 'color' => 'bg-emerald-400 text-emerald-900 border-emerald-200'],
-                'berlatih'  => ['icon' => '📝', 'text' => 'Berlatih', 'color' => 'bg-red-400 text-red-900 border-red-200'],
-                default     => ['icon' => '📖', 'text' => 'Materi', 'color' => 'bg-yellow-400 text-yellow-900 border-yellow-200'],
-            };
+        // PELINDUNG 2: Cek apakah fungsi tahap sudah ada sebelum dibuat
+        if (!function_exists('getStageStyle')) {
+            function getStageStyle($stage) {
+                return match($stage) {
+                    'berpikir'  => ['icon' => '🤔', 'text' => 'Pemantik', 'color' => 'bg-purple-400 text-purple-900 border-purple-200'],
+                    'amati'     => ['icon' => '🔍', 'text' => 'Mengamati', 'color' => 'bg-blue-400 text-blue-900 border-blue-200'],
+                    'mencoba'   => ['icon' => '🧪', 'text' => 'Mencoba', 'color' => 'bg-orange-400 text-orange-900 border-orange-200'],
+                    'diskusi'   => ['icon' => '💬', 'text' => 'Diskusi', 'color' => 'bg-pink-400 text-pink-900 border-pink-200'],
+                    'simpulkan' => ['icon' => '💡', 'text' => 'Menyimpulkan', 'color' => 'bg-emerald-400 text-emerald-900 border-emerald-200'],
+                    'berlatih'  => ['icon' => '📝', 'text' => 'Berlatih', 'color' => 'bg-red-400 text-red-900 border-red-200'],
+                    default     => ['icon' => '📖', 'text' => 'Materi', 'color' => 'bg-yellow-400 text-yellow-900 border-yellow-200'],
+                };
+            }
         }
     @endphp
 
-    <!-- Tombol Burger Mengambang -->
     <button id="floating-burger" onclick="toggleSidebar()" class="fixed top-4 left-4 z-[60] bg-blue-600 text-white p-2.5 rounded-xl shadow-[0_4px_0_#1d4ed8] border-2 border-white hover:bg-blue-500 transition-all hidden transform hover:scale-105 active:translate-y-[4px] active:shadow-none">
         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M4 6h16M4 12h16M4 18h16"></path></svg>
     </button>
 
-    <!-- SIDEBAR KOMPAK (w-72) -->
     <nav id="sidebar" class="bg-white border-r-[3px] border-slate-200 h-full w-72 flex-shrink-0 flex flex-col z-50 absolute md:relative transform translate-x-0">
         <div class="p-4 md:p-5 bg-blue-500 text-white border-b-[3px] border-blue-700 shadow-sm">
             <div class="flex items-center justify-between mb-3">
-                <div class="bg-blue-600 rounded-full px-3 py-1 font-black text-xs shadow-inner tracking-wide uppercase">
-                    🔥 Modul
-                </div>
+                <div class="bg-blue-600 rounded-full px-3 py-1 font-black text-xs shadow-inner tracking-wide uppercase">🔥 Modul</div>
                 <div class="flex gap-2">
                     <button onclick="toggleSidebar()" class="text-blue-100 hover:text-white p-1.5 bg-blue-600 rounded-lg border-2 border-blue-400 transition-colors shadow-sm">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path></svg>
                     </button>
-                    <button onclick="confirmExit()" class="text-white hover:text-red-200 font-black flex items-center justify-center bg-red-500 hover:bg-red-600 w-8 h-8 rounded-lg border-2 border-red-400 shadow-sm transition-colors">
-                        ✖
-                    </button>
+                    <button onclick="confirmExit()" class="text-white hover:text-red-200 font-black flex items-center justify-center bg-red-500 hover:bg-red-600 w-8 h-8 rounded-lg border-2 border-red-400 shadow-sm transition-colors">✖</button>
                 </div>
             </div>
             <h1 class="text-xl font-black leading-tight">{{ $module->title }}</h1>
@@ -94,9 +92,14 @@
                 </button>
             @endforeach
         </div>
+        @if($isCompleted)
+            <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded-xl font-bold mb-6 flex items-center gap-3 shadow-sm">
+                <span class="text-2xl">👀</span>
+                <p>Kamu sedang dalam <strong>Mode Ulasan</strong>. Modul ini sudah diselesaikan dan jawaban tidak bisa diubah.</p>
+            </div>
+        @endif
     </nav>
 
-    <!-- AREA KONTEN UTAMA -->
     <main id="main-content" class="flex-1 h-full overflow-y-auto p-3 md:p-6 relative scroll-smooth transition-all duration-300 w-full">
         <div class="max-w-4xl mx-auto">
             
@@ -104,21 +107,16 @@
                 <div id="activity-wrapper-{{ $aIndex }}" class="activity-section pb-20" style="display: none;">
                     
                     @php
-                        // Memastikan data stages terbaca sebagai array
                         $stages = is_string($activity->stages) ? json_decode($activity->stages, true) : ($activity->stages ?? []);
                         $totalStages = count($stages);
                     @endphp
 
-                    <!-- ========================================== -->
-                    <!-- GERBONG 1: TAHAPAN MATERI BERLAPIS         -->
-                    <!-- ========================================== -->
                     @if($totalStages > 0)
                         @foreach($stages as $sIndex => $stage)
                             @php $stageStyle = getStageStyle($stage['tipe_tahapan'] ?? 'materi'); @endphp
                             
                             <div id="stage-phase-{{ $aIndex }}-{{ $sIndex }}" class="stage-slide bubbly-card bg-white p-5 md:p-8 border-[3px] border-blue-100 relative" style="display: {{ $sIndex == 0 ? 'block' : 'none' }};">
                                 
-                                <!-- Tombol Mundur (Muncul jika bukan slide pertama) -->
                                 @if($sIndex > 0)
                                     <button type="button" onclick="slideMundur({{ $aIndex }}, {{ $sIndex }})" class="absolute top-5 left-5 text-slate-400 hover:text-slate-600 font-bold text-sm flex items-center gap-1 transition-colors">
                                         <span>⬅️</span> Mundur
@@ -133,13 +131,11 @@
                                 <h2 class="text-xl md:text-3xl font-black text-slate-800 text-center mb-6">{{ $activity->title }}</h2>
 
                                 <div class="bg-slate-50 rounded-2xl p-4 md:p-6 border-[3px] border-slate-200 mb-6">
-                                    <!-- RENDER TIPE KONTEN DENGAN FUNGSI PENYULAP URL PRIVATE -->
                                     <div class="prose prose-blue text-slate-700 mx-auto font-bold leading-relaxed w-full max-w-full">
                                         {!! renderPrivateImages($stage['konten_tahapan'] ?? '') !!}
                                     </div>
                                 </div>
 
-                                <!-- Tombol Lanjut ke Tahapan Berikutnya / Ke Latihan -->
                                 <button onclick="slideLanjut({{ $aIndex }}, {{ $sIndex }}, {{ $totalStages }})" 
                                     class="w-full bg-blue-500 hover:bg-blue-400 text-white font-black text-xl py-3.5 rounded-2xl shadow-[0_5px_0_#1d4ed8] active:shadow-none active:translate-y-[5px] transition-all border-[3px] border-white">
                                     {{ $sIndex == $totalStages - 1 ? 'Mulai Berlatih! 🚀' : 'Lanjut ➔' }}
@@ -147,7 +143,6 @@
                             </div>
                         @endforeach
                     @else
-                        <!-- Fallback darurat jika Admin lupa isi gerbong tahapan, tapi isi description lama -->
                         <div id="stage-phase-{{ $aIndex }}-0" class="stage-slide bubbly-card bg-white p-5 md:p-8 border-[3px] border-blue-100" style="display: block;">
                             <div class="text-center mb-5"><span class="bg-yellow-400 text-yellow-900 px-5 py-1.5 rounded-full font-black shadow-sm border-[3px] border-white inline-block">📖 Materi</span></div>
                             <h2 class="text-xl font-black text-center mb-6">{{ $activity->title }}</h2>
@@ -156,9 +151,6 @@
                         </div>
                     @endif
 
-                    <!-- ========================================== -->
-                    <!-- GERBONG TERAKHIR: AYO BERLATIH (UJIAN)     -->
-                    <!-- ========================================== -->
                     <div id="practice-phase-{{ $aIndex }}" style="display: none;" class="bubbly-card bg-white p-5 md:p-8 border-[3px] border-green-100 relative">
                         
                         <button type="button" onclick="kembaliKeMateri({{ $aIndex }}, {{ $totalStages }})" class="mb-6 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm py-2 px-4 rounded-full shadow-[0_3px_0_#cbd5e1] active:translate-y-[3px] transition-all border-2 border-slate-300 flex items-center gap-2">
@@ -173,61 +165,14 @@
                         </div>
 
                         <form id="form-activity-{{ $aIndex }}">
-                            <div class="space-y-6">
+                            <div class="space-y-8">
                                 @foreach($activity->questions as $qIndex => $question)
-                                    @php
-                                        $flexClass = match($question->layout_position) {
-                                            'image_right' => 'flex-col md:flex-row-reverse',
-                                            'image_top' => 'flex-col',
-                                            'image_bottom' => 'flex-col-reverse',
-                                            default => 'flex-col md:flex-row',
-                                        };
-                                    @endphp
 
-                                    <div class="bg-slate-50 rounded-2xl p-5 md:p-6 border-[3px] border-slate-200 relative pt-8">
-                                        <div class="absolute -top-5 left-5 w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center font-black text-xl shadow-md border-[3px] border-white transform -rotate-3">
-                                            {{ $qIndex + 1 }}
-                                        </div>
+                                    @include('filament.components.soal-murid', [
+                                        'question' => $question,
+                                        'qIndex' => $qIndex
+                                    ])
 
-                                        <div class="flex {{ $flexClass }} gap-6 items-center">
-                                            
-                                            <!-- GAMBAR SOAL PRIVATE -->
-                                            @if($question->image)
-                                                <div class="w-full md:w-1/2 flex justify-center bg-white p-2.5 rounded-xl shadow-sm border-[3px] border-slate-100">
-                                                    <img src="{{ route('private.image', ['path' => $question->image]) }}" class="max-h-48 object-contain rounded-lg">
-                                                </div>
-                                            @endif
-
-                                            <div class="w-full {{ $question->image ? 'md:w-1/2' : 'w-full' }} flex flex-col gap-4">
-                                                <!-- TEKS SOAL RENDER PRIVATE -->
-                                                <div class="prose prose-blue font-bold text-slate-800 w-full max-w-full">
-                                                    {!! renderPrivateImages($question->question_text) !!}
-                                                </div>
-
-                                                <div class="mt-1">
-                                                    @if($question->answer_format === 'multiple_choice' || $question->answer_format === 'true_false_correction')
-                                                        <div class="flex flex-col gap-3">
-                                                            @foreach($question->options as $opsi)
-                                                                @php 
-                                                                    $isChecked = isset($existingAnswers[$question->id]) && $existingAnswers[$question->id] === $opsi['teks_pilihan'];
-                                                                @endphp
-                                                                <label class="flex items-center gap-3 p-3.5 bg-white border-[3px] border-slate-200 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
-                                                                    <input type="radio" name="jawaban[{{ $question->id }}]" value="{{ $opsi['teks_pilihan'] }}" class="w-6 h-6 text-blue-600 focus:ring-blue-500 border-2 border-slate-300" required {{ $isChecked ? 'checked' : '' }}>
-                                                                    <span class="text-base font-bold text-slate-700">{{ $opsi['teks_pilihan'] }}</span>
-                                                                </label>
-                                                            @endforeach
-                                                        </div>
-                                                    
-                                                    @elseif($question->answer_format === 'number_input')
-                                                        <input type="number" name="jawaban[{{ $question->id }}]" value="{{ $existingAnswers[$question->id] ?? '' }}" placeholder="0" required class="w-full text-center text-3xl font-black text-blue-600 px-5 py-4 bg-white border-[3px] border-slate-200 rounded-xl focus:border-blue-500 focus:bg-blue-50 shadow-inner outline-none transition-colors">
-                                                    
-                                                    @else
-                                                        <input type="text" name="jawaban[{{ $question->id }}]" value="{{ $existingAnswers[$question->id] ?? '' }}" placeholder="Ketik di sini..." required class="w-full px-5 py-4 font-bold text-lg bg-white border-[3px] border-slate-200 rounded-xl focus:border-blue-500 focus:bg-blue-50 outline-none shadow-inner transition-colors">
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
                                 @endforeach
                             </div>
 
@@ -270,41 +215,17 @@
                 if(highestUnlockedIndex >= totalActivities) highestUnlockedIndex = totalActivities - 1;
                 currentIndex = highestUnlockedIndex;
             }
-            
             updateNavigationUI();
             showActivity(currentIndex);
-
-            if(window.innerWidth < 768) {
-                toggleSidebar();
-            }
-
-            // ========================================================
-            // 🪄 SIHIR CAPTION GAMBAR (TAMBAHKAN KODE INI)
-            // ========================================================
-            document.querySelectorAll('.prose img').forEach(img => {
-                const altText = img.getAttribute('alt');
-                // Cek jika gambar punya deskripsi alt dan bukan teks kosong
-                if(altText && altText.trim() !== '') {
-                    const caption = document.createElement('div');
-                    // Styling caption ala buku cerita bergambar
-                    caption.className = 'text-sm text-slate-500 font-bold text-center mt-2 mb-4 italic bg-slate-100 py-1.5 px-4 rounded-lg inline-block w-full';
-                    caption.innerText = altText;
-                    
-                    // Sisipkan teks ini tepat di bawah gambar
-                    img.parentNode.insertBefore(caption, img.nextSibling);
-                }
-            });
-            // ========================================================
+            if(window.innerWidth < 768) toggleSidebar();
         });
 
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const floatingBtn = document.getElementById('floating-burger');
             const overlay = document.getElementById('mobile-overlay');
-
             sidebar.classList.toggle('-translate-x-full');
-            sidebar.classList.toggle('md:-ml-72'); // Sesuaikan dengan lebar w-72
-
+            sidebar.classList.toggle('md:-ml-72'); 
             if (sidebar.classList.contains('-translate-x-full')) {
                 floatingBtn.classList.remove('hidden');
                 overlay.classList.add('hidden'); 
@@ -318,10 +239,8 @@
             for(let i = 0; i < totalActivities; i++) {
                 const btn = document.getElementById(`nav-btn-${i}`);
                 const icon = document.getElementById(`nav-icon-${i}`);
-                
                 btn.classList.remove('bg-blue-100', 'border-blue-500', 'text-blue-800', 'shadow-sm', 'scale-[1.02]');
                 btn.classList.add('bg-slate-50', 'border-slate-200', 'text-slate-400');
-
                 if (i <= highestUnlockedIndex) {
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     btn.classList.add('cursor-pointer', 'hover:bg-slate-100');
@@ -331,7 +250,6 @@
                     btn.classList.remove('cursor-pointer');
                     icon.innerHTML = '🔒';
                 }
-
                 if (i === currentIndex) {
                     btn.classList.remove('bg-slate-50', 'border-slate-200', 'text-slate-400');
                     btn.classList.add('bg-blue-100', 'border-blue-500', 'text-blue-800', 'shadow-sm', 'scale-[1.02]');
@@ -339,30 +257,18 @@
             }
         }
 
-        // ==========================================
-        // LOGIKA SLIDE GERBONG TAHAPAN
-        // ==========================================
         function showActivity(index) {
-            // Sembunyikan semua aktivitas
             document.querySelectorAll('.activity-section').forEach(el => el.style.display = 'none');
-            
             const target = document.getElementById(`activity-wrapper-${index}`);
             if(target) {
                 target.style.display = 'block';
                 target.classList.remove('slide-out-left');
                 target.classList.add('slide-in-right');
-                
-                // Pastikan yang muncul pertama adalah Tahap 0, sembunyikan Latihan
                 document.querySelectorAll(`#activity-wrapper-${index} .stage-slide`).forEach(el => el.style.display = 'none');
-                
                 const firstStage = document.getElementById(`stage-phase-${index}-0`);
-                if(firstStage) {
-                    firstStage.style.display = 'block';
-                }
-                
+                if(firstStage) firstStage.style.display = 'block';
                 document.getElementById(`practice-phase-${index}`).style.display = 'none';
             }
-
             currentIndex = index;
             updateNavigationUI();
             document.getElementById('main-content').scrollTo({ top: 0, behavior: 'smooth' });
@@ -370,17 +276,13 @@
 
         function slideLanjut(aIndex, currentStageIndex, totalStages) {
             const currentStage = document.getElementById(`stage-phase-${aIndex}-${currentStageIndex}`);
-            
             currentStage.style.display = 'none';
-            
             if (currentStageIndex + 1 < totalStages) {
-                // Lanjut ke Slide Materi Berikutnya
                 const nextStage = document.getElementById(`stage-phase-${aIndex}-${currentStageIndex + 1}`);
                 nextStage.style.display = 'block';
                 nextStage.classList.remove('slide-in-left');
                 nextStage.classList.add('slide-in-right');
             } else {
-                // Jika materi habis, tampilkan Ujian
                 const practice = document.getElementById(`practice-phase-${aIndex}`);
                 practice.style.display = 'block';
                 practice.classList.remove('slide-in-left');
@@ -392,40 +294,129 @@
         function slideMundur(aIndex, currentStageIndex) {
             const currentStage = document.getElementById(`stage-phase-${aIndex}-${currentStageIndex}`);
             const prevStage = document.getElementById(`stage-phase-${aIndex}-${currentStageIndex - 1}`);
-            
             currentStage.style.display = 'none';
             prevStage.style.display = 'block';
             prevStage.classList.remove('slide-in-right');
             prevStage.classList.add('slide-in-left');
-            
             document.getElementById('main-content').scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function kembaliKeMateri(aIndex, totalStages) {
             const practice = document.getElementById(`practice-phase-${aIndex}`);
             const lastStage = document.getElementById(`stage-phase-${aIndex}-${totalStages - 1}`);
-            
             practice.style.display = 'none';
             lastStage.style.display = 'block';
             lastStage.classList.remove('slide-in-right');
             lastStage.classList.add('slide-in-left');
-            
             document.getElementById('main-content').scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // ==========================================
-        // NAVIGASI SIDEBAR & AJAX SAVE
-        // ==========================================
         function goToActivity(index) {
             if(index > highestUnlockedIndex) return; 
             showActivity(index);
-            
             if(window.innerWidth < 768) {
                 const sidebar = document.getElementById('sidebar');
-                if(!sidebar.classList.contains('-translate-x-full')) {
-                    toggleSidebar();
+                if(!sidebar.classList.contains('-translate-x-full')) toggleSidebar();
+            }
+        }
+
+        // =========================================================
+        // MESIN PENARIK GARIS SVG (UNTUK SOAL MATCHING)
+        // =========================================================
+        let aktifKiri = {}; 
+        function pilihKiri(btn, soalId) {
+            document.querySelectorAll(`.btn-kiri-${soalId}`).forEach(el => {
+                el.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
+                el.querySelector('.konektor-kiri').classList.replace('bg-blue-500', 'bg-slate-200');
+                el.querySelector('.konektor-kiri').classList.replace('bg-green-500', 'bg-slate-200');
+            });
+            btn.classList.add('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
+            btn.querySelector('.konektor-kiri').classList.replace('bg-slate-200', 'bg-blue-500');
+            aktifKiri[soalId] = btn;
+        }
+
+        function pilihKanan(btn, soalId) {
+            if(!aktifKiri[soalId]) { alert("Pilih kotak di sebelah kiri dulu ya!"); return; }
+            let btnKiri = aktifKiri[soalId];
+
+            btn.classList.add('border-green-500', 'bg-green-50');
+            btn.querySelector('.konektor-kanan').classList.replace('bg-slate-200', 'bg-green-500');
+            btnKiri.classList.replace('border-blue-500', 'border-green-500');
+            btnKiri.classList.replace('bg-blue-50', 'bg-green-50');
+            btnKiri.classList.remove('ring-4', 'ring-blue-100');
+            btnKiri.querySelector('.konektor-kiri').classList.replace('bg-blue-500', 'bg-green-500');
+
+            // Menyimpan jawaban dalam format JSON String agar Database Server Tidak Crash
+            let hiddenContainer = document.getElementById(`hidden-inputs-${soalId}`);
+            let hiddenInput = document.getElementById(`ans-${soalId}`);
+            if(!hiddenInput) {
+                hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.id = `ans-${soalId}`;
+                hiddenInput.name = `jawaban[${soalId}]`;
+                hiddenInput.value = "{}";
+                hiddenContainer.appendChild(hiddenInput);
+            }
+            let currentAns = JSON.parse(hiddenInput.value);
+            currentAns[btnKiri.dataset.nilai] = btn.dataset.nilai;
+            hiddenInput.value = JSON.stringify(currentAns);
+
+            gambarGarisSVG(btnKiri, btn, soalId);
+            aktifKiri[soalId] = null;
+        }
+
+        function gambarGarisSVG(elKiri, elKanan, soalId) {
+            let svg = document.getElementById(`svg-canvas-${soalId}`);
+            let container = document.getElementById(`match-wrap-${soalId}`);
+            let lineId = `line-${soalId}-${elKiri.dataset.nilai.replace(/[^a-zA-Z0-9]/g, '')}`;
+            let line = document.getElementById(lineId);
+            
+            if(!line) {
+                line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.id = lineId;
+                line.setAttribute('stroke', '#22c55e');
+                line.setAttribute('stroke-width', '6');
+                line.setAttribute('stroke-linecap', 'round');
+                line.style.strokeDasharray = "1000";
+                line.style.strokeDashoffset = "1000";
+                line.style.transition = "stroke-dashoffset 0.5s ease-out";
+                svg.appendChild(line);
+            }
+
+            let rectContainer = container.getBoundingClientRect();
+            let rectKiri = elKiri.querySelector('.konektor-kiri').getBoundingClientRect();
+            let rectKanan = elKanan.querySelector('.konektor-kanan').getBoundingClientRect();
+
+            line.setAttribute('x1', rectKiri.left + (rectKiri.width/2) - rectContainer.left);
+            line.setAttribute('y1', rectKiri.top + (rectKiri.height/2) - rectContainer.top);
+            line.setAttribute('x2', rectKanan.left + (rectKanan.width/2) - rectContainer.left);
+            line.setAttribute('y2', rectKanan.top + (rectKanan.height/2) - rectContainer.top);
+
+            setTimeout(() => { line.style.strokeDashoffset = "0"; }, 10);
+        }
+
+        // ==========================================
+        // AJAX PENGAMAN DATA SEBELUM DISIMPAN
+        // ==========================================
+        function prepareSafeFormData(formElement) {
+            let rawData = new FormData(formElement);
+            let safeData = new FormData();
+            let arrayValues = {};
+
+            // Menggabungkan isian rumpang ganda (Array) menjadi 1 String agar tidak Crash di Controller
+            for(let [key, value] of rawData.entries()) {
+                if(key.endsWith('[]')) {
+                    let cleanKey = key.slice(0, -2);
+                    if(!arrayValues[cleanKey]) arrayValues[cleanKey] = [];
+                    arrayValues[cleanKey].push(value);
+                } else {
+                    safeData.append(key, value);
                 }
             }
+            for(let key in arrayValues) {
+                safeData.append(key, arrayValues[key].join(' | '));
+            }
+            return safeData;
         }
 
         function ambilToken() { return document.querySelector('meta[name="csrf-token"]').content; }
@@ -435,7 +426,6 @@
             const form = document.getElementById(`form-activity-${index}`);
             if (!validasiForm(form)) return;
 
-            const formData = new FormData(form);
             const btn = form.querySelector('button');
             const originalText = btn.innerHTML;
             btn.innerHTML = "Menyimpan... ⏳"; btn.disabled = true;
@@ -443,7 +433,7 @@
             fetch(`/ruang-belajar/modul/${moduleId}/simpan-aktivitas`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': ambilToken(), 'Accept': 'application/json' },
-                body: formData
+                body: prepareSafeFormData(form) // Kirim data yang sudah di-sterilkan
             })
             .then(response => response.json())
             .then(data => {
@@ -456,9 +446,7 @@
                     showActivity(nextIndex);
                 }
             })
-            .finally(() => {
-                btn.innerHTML = originalText; btn.disabled = false;
-            });
+            .finally(() => { btn.innerHTML = originalText; btn.disabled = false; });
         }
 
         function simpanDanSelesai(index, moduleId) {
@@ -466,14 +454,13 @@
             if (!validasiForm(form)) return;
 
             isSubmitting = true;
-            const formData = new FormData(form);
             const btn = form.querySelector('button');
             btn.innerHTML = "Mengirim... 🚀"; btn.disabled = true;
 
             fetch(`/ruang-belajar/modul/${moduleId}/simpan-aktivitas`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': ambilToken(), 'Accept': 'application/json' },
-                body: formData
+                body: prepareSafeFormData(form)
             })
             .then(response => response.json())
             .then(data => {

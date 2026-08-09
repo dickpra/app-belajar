@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string('sign_language_video')->nullable();
             $table->string('answer_format'); // multiple_choice, number_input, text
             $table->string('correct_answer')->nullable();
+            $table->string('true_false_answer')->nullable(); // Menyimpan "Benar" atau "Salah"
+            $table->string('correction_text')->nullable();   // Menyimpan teks perbaikan
             $table->text('answer_explanation')->nullable();
             $table->string('layout_position')->default('image_left');
             $table->jsonb('options')->nullable(); // Gunakan jsonb untuk optimasi PostgreSQL
