@@ -70,3 +70,20 @@ Route::prefix('ruang-belajar')->middleware([CekLoginMurid::class])->group(functi
     Route::post('/modul/{module_id}/simpan-aktivitas', [StudentModuleController::class, 'saveActivity'])->name('student.save_activity');
 
 });
+
+Route::get('/private-video/{path}', function ($path) {
+    // 1. Cek apakah file videonya ada di disk 'modul_rahasia'
+    if (!Storage::disk('modul_rahasia')->exists($path)) {
+        abort(404, 'Video tidak ditemukan.');
+    }
+
+    // 2. Ambil path asli dari server
+    $filePath = Storage::disk('modul_rahasia')->path($path);
+    $mimeType = Storage::disk('modul_rahasia')->mimeType($path);
+
+    // 3. Kembalikan sebagai "Stream File" agar video tidak buffering/patah-patah
+    return response()->file($filePath, [
+        'Content-Type' => $mimeType,
+        'Accept-Ranges' => 'bytes'
+    ]);
+})->where('path', '.*')->name('private.video'); // where('.*') penting agar tanda miring (/) terbaca

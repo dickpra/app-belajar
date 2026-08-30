@@ -36,7 +36,15 @@
     </style>
 </head>
 <body class="text-slate-800 antialiased h-screen flex overflow-hidden bg-slate-50">
-
+<div id="toast-warning" class="fixed top-10 left-1/2 transform -translate-x-1/2 z-[100] transition-all duration-500 ease-in-out opacity-0 -translate-y-20 pointer-events-none">
+        <div class="bg-red-500 border-4 border-white text-white px-6 py-4 rounded-[2rem] shadow-[0_8px_0_#b91c1c] flex items-center gap-4">
+            <div class="text-4xl animate-bounce drop-shadow-md">⚠️</div>
+            <div>
+                <h4 class="font-black text-xl leading-tight">Waduh! Ada yang terlewat!</h4>
+                <p id="toast-message" class="font-bold text-sm text-red-100">Soal Nomor X belum kamu jawab nih.</p>
+            </div>
+        </div>
+    </div>
     @php
         // PELINDUNG 1: Cek apakah fungsi sudah ada sebelum dibuat
         if (!function_exists('renderPrivateImages')) {
@@ -131,9 +139,45 @@
                                 <h2 class="text-xl md:text-3xl font-black text-slate-800 text-center mb-6">{{ $activity->title }}</h2>
 
                                 <div class="bg-slate-50 rounded-2xl p-4 md:p-6 border-[3px] border-slate-200 mb-6">
+                                    <!-- ========================================== -->
+                                <!-- TOMBOL BANTUAN MATERI (SUARA & ISYARAT) -->
+                                <!-- ========================================== -->
+                                @php $videoMateri = $stage['sign_language_video'] ?? null; @endphp
+                                
+                                <div class="flex flex-wrap items-center justify-center gap-3 mb-6">
+                                    <!-- Tombol Suara -->
+                                    <button type="button" onclick="bacakanTeks(`{{ strip_tags($stage['konten_tahapan'] ?? '') }}`)" class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-2 px-4 rounded-full flex items-center gap-2 transition-all border-2 border-blue-300 shadow-sm active:translate-y-1">
+                                        <span class="text-xl">🔊</span> Bacakan Materi
+                                    </button>
+
+                                    <!-- Tombol Video Isyarat -->
+                                    @if(!empty($videoMateri))
+                                        <button type="button" onclick="toggleVideoMateri({{ $aIndex }}, {{ $sIndex }})" class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold py-2 px-4 rounded-full flex items-center gap-2 transition-all border-2 border-purple-300 shadow-sm active:translate-y-1">
+                                            <span class="text-xl">🤟</span> Lihat Isyarat
+                                        </button>
+                                    @endif
+                                </div>
+
+                                <!-- CONTAINER VIDEO MATERI (Tersembunyi) -->
+                                @if(!empty($videoMateri))
+                                    <div id="video-materi-{{ $aIndex }}-{{ $sIndex }}" class="hidden mb-6 mx-auto relative rounded-2xl overflow-hidden border-4 border-purple-300 shadow-md bg-slate-900 transition-all duration-300 w-full max-w-lg">
+                                        <div class="bg-purple-100 px-4 py-2 flex justify-between items-center border-b-2 border-purple-300">
+                                            <span class="font-black text-purple-800 text-sm flex items-center gap-2">🤟 Bantuan Isyarat Materi</span>
+                                            <button type="button" onclick="toggleVideoMateri({{ $aIndex }}, {{ $sIndex }})" class="text-red-500 hover:text-red-700 font-black text-xl hover:scale-110 transition-transform">✖</button>
+                                        </div>
+                                        <video id="player-materi-{{ $aIndex }}-{{ $sIndex }}" controls class="w-full aspect-video bg-black">
+                                            <source src="{{ route('private.video', ['path' => $videoMateri]) }}" type="video/mp4">
+                                            Browsermu tidak mendukung pemutar video.
+                                        </video>
+                                    </div>
+                                @endif
+
+                                <!-- KOTAK ISI MATERI -->
+                                <div class="bg-slate-50 rounded-2xl p-4 md:p-6 border-[3px] border-slate-200 mb-6">
                                     <div class="prose prose-blue text-slate-700 mx-auto font-bold leading-relaxed w-full max-w-full">
                                         {!! renderPrivateImages($stage['konten_tahapan'] ?? '') !!}
                                     </div>
+                                </div>
                                 </div>
 
                                 <button onclick="slideLanjut({{ $aIndex }}, {{ $sIndex }}, {{ $totalStages }})" 
@@ -177,14 +221,20 @@
                             </div>
 
                             <div class="mt-8 pt-6 border-t-[3px] border-dashed border-slate-200">
-                                @if($aIndex < count($module->activities) - 1)
-                                    <button type="button" onclick="simpanDanLanjut({{ $aIndex }}, {{ $module->id }})" class="w-full md:w-auto md:float-right bg-green-500 hover:bg-green-400 text-white font-black text-xl py-3.5 px-8 rounded-full shadow-[0_5px_0_#16a34a] active:shadow-none active:translate-y-[5px] transition-all border-[3px] border-white">
-                                        Simpan Jawaban ➔
-                                    </button>
+                                @if($isCompleted)
+                                    <a href="{{ route('student.dashboard') }}" class="block w-full text-center bg-slate-300 hover:bg-slate-400 text-slate-600 font-black py-4 md:py-5 rounded-2xl shadow-[0_6px_0_#94a3b8] transition-all active:translate-y-[6px] active:shadow-none text-xl border-4 border-white">
+                                        ⬅️ Kembali ke Peta Perjalanan
+                                    </a>
                                 @else
-                                    <button type="button" onclick="simpanDanSelesai({{ $aIndex }}, {{ $module->id }})" class="w-full bg-orange-500 hover:bg-orange-400 text-white font-black text-xl py-3.5 rounded-full shadow-[0_5px_0_#ea580c] active:shadow-none active:translate-y-[5px] transition-all border-[3px] border-white">
-                                        🏆 Kumpulkan Tugas!
-                                    </button>
+                                    @if($aIndex < count($module->activities) - 1)
+                                        <button type="button" onclick="simpanDanLanjut({{ $aIndex }}, {{ $module->id }})" class="w-full md:w-auto md:float-right bg-green-500 hover:bg-green-400 text-white font-black text-xl py-3.5 px-8 rounded-full shadow-[0_5px_0_#16a34a] active:shadow-none active:translate-y-[5px] transition-all border-[3px] border-white">
+                                            Simpan Jawaban ➔
+                                        </button>
+                                    @else
+                                        <button type="button" onclick="simpanDanSelesai({{ $aIndex }}, {{ $module->id }})" class="w-full bg-orange-500 hover:bg-orange-400 text-white font-black text-xl py-3.5 rounded-full shadow-[0_5px_0_#ea580c] active:shadow-none active:translate-y-[5px] transition-all border-[3px] border-white bubbly-button">
+                                            ✨ Kumpulkan Tugas! ✨
+                                        </button>
+                                    @endif
                                 @endif
                                 <div class="clear-both"></div>
                             </div>
@@ -197,28 +247,132 @@
         </div>
     </main>
 
+    <div id="celebrationModal" class="fixed inset-0 bg-blue-900 bg-opacity-80 z-[100] hidden flex items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white p-8 md:p-12 rounded-[3rem] max-w-md w-full text-center shadow-2xl transform scale-75 transition-transform duration-500 ease-out border-8 border-yellow-400 relative" id="celebrationContent">
+            <div class="absolute -top-6 -left-6 text-4xl animate-spin-slow">✨</div>
+            <div class="absolute -bottom-6 -right-6 text-4xl animate-bounce">🌟</div>
+            <div class="text-8xl md:text-9xl mb-6 animate-bounce origin-bottom drop-shadow-xl">🏆</div>
+            <h2 class="text-4xl font-black text-green-500 mb-3">Luar Biasa!</h2>
+            <p class="text-xl font-bold text-slate-600 mb-8 leading-relaxed">Kamu berhasil menyelesaikan level ini dengan hebat! Pak/Bu Guru akan segera memeriksa tugasmu.</p>
+            <button onclick="window.location.href='{{ route('student.dashboard') }}?status=hore'" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-black py-4 rounded-2xl shadow-[0_6px_0_#2563eb] transition-all active:translate-y-[6px] active:shadow-none text-xl border-4 border-white">
+                Lanjut Berpetualang ➔
+            </button>
+        </div>
+    </div>
+
     <div id="mobile-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/40 z-40 hidden md:hidden backdrop-blur-sm transition-all"></div>
 
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
         const moduleId = {{ $module->id }};
         const totalActivities = {{ count($module->activities) }};
         const storageKey = `resume_module_${moduleId}_student_{{ session('student_id') }}`;
         
-        let highestUnlockedIndex = 0;
-        let currentIndex = 0;
+        // =======================================================
+        // 🧠 KECERDASAN BARU: CEK DATABASE UNTUK MEMBUKA GEMBOK
+        // =======================================================
+        @php
+            $dbUnlockedIndex = 0;
+            // Looping untuk mencari tahu aktivitas mana yang sudah ada jawabannya
+            foreach($module->activities as $idx => $act) {
+                $terjawab = false;
+                foreach($act->questions as $q) {
+                    if(isset($existingAnswers[$q->id])) {
+                        $terjawab = true; break;
+                    }
+                }
+                // Jika aktivitas ini sudah dikerjakan, BUKA aktivitas berikutnya
+                if($terjawab) {
+                    $dbUnlockedIndex = $idx + 1; 
+                }
+            }
+            // Batasi agar tidak melebih total aktivitas
+            if($dbUnlockedIndex >= count($module->activities)) {
+                $dbUnlockedIndex = count($module->activities) - 1;
+            }
+        @endphp
+
+        // Setel gembok berdasarkan rekaman database yang valid
+        let highestUnlockedIndex = {{ $dbUnlockedIndex }};
+        let currentIndex = highestUnlockedIndex; // Otomatis diarahkan ke level terakhir yg terbuka
         let isSubmitting = false;
 
         document.addEventListener("DOMContentLoaded", function() {
+            // Kita tetap cek localStorage untuk jaga-jaga kalau koneksi putus di tengah jalan
             let savedUnlocked = localStorage.getItem(storageKey);
-            if (savedUnlocked !== null) {
+            if (savedUnlocked !== null && parseInt(savedUnlocked) > highestUnlockedIndex) {
                 highestUnlockedIndex = parseInt(savedUnlocked);
                 if(highestUnlockedIndex >= totalActivities) highestUnlockedIndex = totalActivities - 1;
                 currentIndex = highestUnlockedIndex;
             }
+            
             updateNavigationUI();
             showActivity(currentIndex);
             if(window.innerWidth < 768) toggleSidebar();
         });
+
+        // ==========================================
+        // 🤖 MESIN ROBOT SUARA (TEXT-TO-SPEECH)
+        // ==========================================
+        function bacakanTeks(teks) {
+            // Cek apakah browser mendukung fitur suara
+            if ('speechSynthesis' in window) {
+                // Hentikan suara yang sedang berjalan (agar tidak tabrakan)
+                window.speechSynthesis.cancel(); 
+                
+                // Siapkan teksnya (bersihkan dari karakter aneh HTML jika ada)
+                const textBersih = teks.replace(/<[^>]*>?/gm, ''); 
+                const robot = new SpeechSynthesisUtterance(textBersih);
+                
+                // Setel ke logat Bahasa Indonesia
+                robot.lang = 'id-ID'; 
+                robot.rate = 0.9; // Kecepatan membaca (0.9 agar ramah anak/tidak terlalu cepat)
+                robot.pitch = 1.1; // Nada suara sedikit ditinggikan
+                
+                // Mulai bicara!
+                window.speechSynthesis.speak(robot);
+            } else {
+                showWarningToast("Maaf, browsermu belum mendukung fitur suara ini. 😔");
+            }
+        }
+
+        // ==========================================
+        // 🤟 PENGENDALI VIDEO ISYARAT (TOGGLE)
+        // ==========================================
+        function toggleVideoSoal(soalId) {
+            const container = document.getElementById(`video-isyarat-${soalId}`);
+            const player = document.getElementById(`player-${soalId}`);
+            
+            if (container.classList.contains('hidden')) {
+                // BUKA: Munculkan kotaknya
+                container.classList.remove('hidden');
+                
+                // (Opsional) Otomatis putar video saat dibuka
+                // player.play(); 
+            } else {
+                // TUTUP: Sembunyikan dan PAUSE videonya agar suara tidak bocor!
+                container.classList.add('hidden');
+                player.pause(); 
+            }
+        }
+
+        // ==========================================
+        // 🤟 PENGENDALI VIDEO ISYARAT (MATERI/TAHAPAN)
+        // ==========================================
+        function toggleVideoMateri(aIndex, sIndex) {
+            const container = document.getElementById(`video-materi-${aIndex}-${sIndex}`);
+            const player = document.getElementById(`player-materi-${aIndex}-${sIndex}`);
+            
+            if (container.classList.contains('hidden')) {
+                // Munculkan videonya
+                container.classList.remove('hidden');
+            } else {
+                // Sembunyikan & Matikan putarannya
+                container.classList.add('hidden');
+                player.pause(); 
+            }
+        }
 
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
@@ -420,11 +574,117 @@
         }
 
         function ambilToken() { return document.querySelector('meta[name="csrf-token"]').content; }
-        function validasiForm(formElement) { return formElement.reportValidity(); }
+
+        // Fungsi pemanggil Toast Notifikasi
+        function showWarningToast(pesan) {
+            const toast = document.getElementById('toast-warning');
+            const toastMsg = document.getElementById('toast-message');
+            
+            toastMsg.innerText = pesan;
+            
+            // Munculkan perlahan dari atas
+            toast.classList.remove('opacity-0', '-translate-y-20');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            // Sembunyikan otomatis setelah 4 detik
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', '-translate-y-20');
+            }, 4000);
+        }
+
+        // ==========================================
+        // 🕵️‍♂️ DETEKTIF VALIDASI PINTAR (ANTI SOAL KOSONG)
+        // ==========================================
+        function validasiForm(index) {
+            const practicePhase = document.getElementById(`practice-phase-${index}`);
+            if (!practicePhase) return true;
+
+            // Tarik semua kotak soal di dalam aktivitas ini
+            const questions = practicePhase.querySelectorAll('.space-y-8 > div');
+            let adaYangKosong = false;
+            let nomorSoalKosong = null;
+            let elementKosong = null;
+
+            questions.forEach((qEl, idx) => {
+                if (adaYangKosong) return; // Jika sudah ketemu 1 yang belum diisi, stop loop
+
+                const radioInputs = qEl.querySelectorAll('input[type="radio"]');
+                const numberInput = qEl.querySelector('input[type="number"]');
+                const textInput = qEl.querySelector('textarea');
+                const fillInputs = qEl.querySelectorAll('input[name*="[]"]');
+                const hiddenAns = qEl.querySelector('input[id^="ans-"]');
+
+                // 👈 1. TAMBAHKAN DETEKTOR KOTAK KIRI DI SINI
+                const konektorKiri = qEl.querySelectorAll('.konektor-kiri');
+
+                let terjawab = false;
+
+                // A. Tipe Pilihan Ganda & Benar/Salah
+                if (radioInputs.length > 0) {
+                    terjawab = Array.from(radioInputs).some(r => r.checked);
+                    const salahChecked = qEl.querySelector('input[value="Salah"]:checked');
+                    if (salahChecked) {
+                        const inputPerbaikan = qEl.querySelector('input[name*="[perbaikan]"]');
+                        if (inputPerbaikan && !inputPerbaikan.value.trim()) {
+                            terjawab = false;
+                        }
+                    }
+                } 
+                // 👈 2. UBAH LOGIKA TIPE MENJODOHKAN (MATCHING) MENJADI SEPERTI INI:
+                else if (konektorKiri.length > 0) {
+                    // Jika murid sudah menarik minimal 1 garis (hiddenAns tercipta)
+                    if (hiddenAns) {
+                        try {
+                            const val = JSON.parse(hiddenAns.value || '{}');
+                            // Syarat terjawab: Jumlah garis yang ditarik HARUS SAMA dengan jumlah kotak di kiri
+                            terjawab = Object.keys(val).length > 0 && Object.keys(val).length === konektorKiri.length;
+                        } catch(e) {
+                            terjawab = false;
+                        }
+                    } else {
+                        // Jika hiddenAns belum ada sama sekali, berarti murid melewatinya!
+                        terjawab = false; 
+                    }
+                }
+                // C. Tipe Isian Rumpang (Complex Fill)
+                else if (fillInputs.length > 0) {
+                    terjawab = Array.from(fillInputs).every(inp => inp.value.trim() !== '');
+                }
+                // D. Tipe Input Angka
+                else if (numberInput) {
+                    terjawab = numberInput.value.trim() !== '';
+                }
+                // E. Tipe Input Teks
+                else if (textInput) {
+                    terjawab = textInput.value.trim() !== '';
+                } else {
+                    terjawab = true;
+                }
+
+                if (!terjawab) {
+                    adaYangKosong = true;
+                    nomorSoalKosong = idx + 1;
+                    elementKosong = qEl;
+                }
+            });
+
+            if (adaYangKosong) {
+                // Meluncurkan layar ke soal yang belum dijawab & beri efek kilau merah
+                elementKosong.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                elementKosong.classList.add('ring-4', 'ring-red-400', 'transition-all');
+                setTimeout(() => elementKosong.classList.remove('ring-4', 'ring-red-400'), 3000);
+
+                showWarningToast(`Lengkapi dulu Soal Nomor ${nomorSoalKosong} sebelum lanjut ya! 🎯`);
+                return false;
+            }
+
+            return true;
+        }
 
         function simpanDanLanjut(index, moduleId) {
             const form = document.getElementById(`form-activity-${index}`);
-            if (!validasiForm(form)) return;
+            if (!validasiForm(index)) return;
 
             const btn = form.querySelector('button');
             const originalText = btn.innerHTML;
@@ -451,10 +711,11 @@
 
         function simpanDanSelesai(index, moduleId) {
             const form = document.getElementById(`form-activity-${index}`);
-            if (!validasiForm(form)) return;
+            if (!validasiForm(index)) return;
 
             isSubmitting = true;
             const btn = form.querySelector('button');
+            const originalText = btn.innerHTML;
             btn.innerHTML = "Mengirim... 🚀"; btn.disabled = true;
 
             fetch(`/ruang-belajar/modul/${moduleId}/simpan-aktivitas`, {
@@ -465,9 +726,32 @@
             .then(response => response.json())
             .then(data => {
                 if(data.status === 'success') {
+                    // Hapus jejak Resume 
                     localStorage.removeItem(storageKey);
-                    window.location.href = "{{ route('student.dashboard') }}";
+                    
+                    // 1. Tembakkan Animasi Hujan Kertas (Confetti)
+                    var duration = 3000;
+                    var end = Date.now() + duration;
+                    (function frame() {
+                        confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'] });
+                        confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'] });
+                        if (Date.now() < end) requestAnimationFrame(frame);
+                    }());
+
+                    // 2. Munculkan Modal Piala Bergoyang
+                    const modal = document.getElementById('celebrationModal');
+                    const content = document.getElementById('celebrationContent');
+                    modal.classList.remove('hidden');
+                    setTimeout(() => {
+                        content.classList.remove('scale-75');
+                        content.classList.add('scale-100');
+                    }, 50);
                 }
+            })
+            .catch(error => {
+                alert("Gagal mengirim tugas. Cek koneksi internetmu ya!");
+                btn.innerHTML = originalText; btn.disabled = false;
+                isSubmitting = false;
             });
         }
 

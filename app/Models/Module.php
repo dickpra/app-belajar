@@ -11,9 +11,10 @@ class Module extends Model
 
     protected $guarded = [];
 
+    // Relasi langsung menembus Aktivitas untuk mengambil Soal
     public function questions()
     {
-        return $this->hasMany(Question::class);
+        return $this->hasManyThrough(Question::class, Activity::class);
     }
 
     public function activities()

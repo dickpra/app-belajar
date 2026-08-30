@@ -135,6 +135,19 @@ class ModuleResource extends Resource
                                             ->profile('default')
                                             ->direction('auto')
                                             ->required(),
+
+                                        // 👇 TAMBAHKAN KODE INI DI SINI 👇
+                                       Forms\Components\FileUpload::make('sign_language_video')
+                                            ->label('🤟 Video Bahasa Isyarat (Opsional)')
+                                            ->disk('modul_rahasia') // Tetap pakai disk private agar aman
+                                            ->visibility('private')
+                                            ->directory(function (Forms\Get $get) {
+                                                $modul = Str::slug($get('../../../title') ?? 'modul-baru');
+                                                $aktivitas = Str::slug($get('../../title') ?? 'aktivitas-baru');
+                                                return "modul_private/{$modul}/{$aktivitas}/video_materi";
+                                            })
+                                            ->acceptedFileTypes(['video/mp4', 'video/webm']) // Hanya terima video
+                                            ->maxSize(51200), // Maksimal 50MB agar server tidak meledak
                                     ])
                                     ->cloneable()
                                     ->collapsible()
@@ -200,6 +213,20 @@ class ModuleResource extends Resource
                                                 return "modul_private/{$modul}/{$aktivitas}/soal_thumbnail";
                                             })
                                             ->label('Gambar Utama Soal (Opsional)'),
+
+                                // 👇 TAMBAHKAN KODE INI DI SINI 👇
+                                        Forms\Components\FileUpload::make('sign_language_video')
+                                            ->label('🤟 Video Bahasa Isyarat Soal (Opsional)')
+                                            ->disk('modul_rahasia')
+                                            ->visibility('private')
+                                            ->directory(function (Forms\Get $get) {
+                                                $modul = \Illuminate\Support\Str::slug($get('../../../title') ?? 'modul-baru');
+                                                $aktivitas = \Illuminate\Support\Str::slug($get('../../title') ?? 'aktivitas-baru');
+                                                return "modul_private/{$modul}/{$aktivitas}/video_soal";
+                                            })
+                                            ->acceptedFileTypes(['video/mp4', 'video/webm'])
+                                            ->maxSize(51200)
+                                            ->previewable(),
 
                                         // KEMBALI MENGGUNAKAN RICH EDITOR BAWAAN FILAMENT
                                         Forms\Components\RichEditor::make('question_text')
