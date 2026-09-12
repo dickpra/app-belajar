@@ -46,7 +46,9 @@ class StudentModuleController extends Controller
 
         // B. MESIN AI ADAPTIF (PENENTU LEVEL MURID)
         $isAdaptive = $module->is_adaptive;
-        $tingkatMurid = 'rendah'; // Level default
+        
+        // UBAH DEFAULT MENJADI 'easy' (sesuai database!)
+        $tingkatMurid = 'easy'; 
 
         if ($isAdaptive) {
             // Hitung persentase jawaban benar secara keseluruhan (Win Rate)
@@ -59,22 +61,44 @@ class StudentModuleController extends Controller
                 $persentase = ($totalBenar / $totalJawaban) * 100;
                 
                 if ($persentase > 75) {
-                    $tingkatMurid = 'sulit';   // Murid Pintar
+                    $tingkatMurid = 'hard';   // UBAH JADI 'hard'
                 } elseif ($persentase >= 50) {
-                    $tingkatMurid = 'sedang';  // Murid Menengah
+                    $tingkatMurid = 'medium'; // UBAH JADI 'medium'
                 }
             }
         }
 
-        // C. MUAT RELASI AKTIVITAS & SOAL (DENGAN FILTER ADAPTIF JIKA NYALA)
-        $module->load(['activities' => function($query) use ($isAdaptive, $tingkatMurid) {
-            $query->with(['questions' => function($q) use ($isAdaptive, $tingkatMurid) {
-                if ($isAdaptive) {
-                    // Hanya tarik soal yang sesuai dengan level kepintaran murid
-                    $q->where('difficulty', $tingkatMurid);
+        // C. MUAT RELASI AKTIVITAS & SOAL (DENGAN SISTEM PENYELAMAT / FALLBACK)
+        // 1. Muat SEMUA soal terlebih dahulu tanpa difilter di database
+        $module->load('activities.questions');
+
+        // 2. Filter menggunakan Collection PHP agar bisa melakukan Fallback
+        if ($isAdaptive) {
+            foreach ($module->activities as $activity) {
+                // Coba cari soal sesuai level AI murid
+                $soalFilter = $activity->questions->where('difficulty', $tingkatMurid);
+
+                // JIKA KOSONG (Admin lupa input soal di level tersebut)
+                if ($soalFilter->isEmpty()) {
+                    
+                    // Fallback 1: Coba cari yang 'medium'
+                    $soalFilter = $activity->questions->where('difficulty', 'medium');
+                    
+                    // Fallback 2: Jika 'medium' juga tidak ada, ambil 'easy'
+                    if ($soalFilter->isEmpty()) {
+                        $soalFilter = $activity->questions->where('difficulty', 'easy');
+                    }
+                    
+                    // Fallback 3: Jika admin bikin soal tapi levelnya aneh/tidak terdeteksi, ambil semua saja
+                    if ($soalFilter->isEmpty()) {
+                        $soalFilter = $activity->questions;
+                    }
                 }
-            }]);
-        }]);
+
+                // Timpa daftar soal di aktivitas tersebut dengan soal yang sudah difilter/diselamatkan
+                $activity->setRelation('questions', $soalFilter->values());
+            }
+        }
 
         // D. AMBIL JAWABAN LAMA UNTUK FITUR RESUME (Hanya dari soal yang di-load)
         $existingAnswers = StudentAnswer::where('student_id', $studentId)

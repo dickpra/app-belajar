@@ -9,6 +9,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use AmidEsfahani\FilamentTinyEditor\TinyEditor;
 use Illuminate\Support\Str;
+use Illuminate\Support\HtmlString; // 👈 Pastikan ini di-import untuk merender HTML
 
 class ActivitiesRelationManager extends RelationManager
 {
@@ -94,7 +95,6 @@ class ActivitiesRelationManager extends RelationManager
                                             $aktivitas = \Illuminate\Support\Str::slug($get('../../title') ?? 'aktivitas');
                                             return "modul_private/{$modul}/{$aktivitas}/tahapan";
                                         })
-
                                         ->required(),
                                 ])
                                 ->cloneable()->collapsible()->reorderableWithButtons()
@@ -102,11 +102,42 @@ class ActivitiesRelationManager extends RelationManager
                         ]),
 
                     // ==========================================
-                    // TAB 3: SOAL & KUNCI JAWABAN
+                    // TAB 3: SOAL & KUNCI JAWABAN (DILENGKAPI PANDUAN)
                     // ==========================================
                     Forms\Components\Tabs\Tab::make('3. Soal & Evaluasi')
                         ->icon('heroicon-o-pencil-square')
                         ->schema([
+                            
+                            // 👇 BANNER PANDUAN AI UNTUK GURU 👇
+                            Forms\Components\Section::make('🤖 Panduan Input Soal Adaptif (AI)')
+                                ->schema([
+                                    Forms\Components\Placeholder::make('panduan_ai')
+                                        ->hiddenLabel()
+                                        ->content(new HtmlString('
+                                            <div style="background-color: #eff6ff; border-left: 6px solid #3b82f6; padding: 1.25rem; border-radius: 0.5rem; color: #1e3a8a; font-size: 0.9rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                                                <h4 style="font-weight: 800; font-size: 1rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                                                    <span style="font-size: 1.25rem;">💡</span> Aturan Wajib Sistem AI Pemilah Soal
+                                                </h4>
+                                                <p style="margin-bottom: 0.75rem; line-height: 1.5;">Sistem akan memilah dan <strong>hanya menampilkan salah satu tingkat kesulitan</strong> berdasarkan kemampuan murid. Harap ikuti tata cara pengisian di bawah ini:</p>
+                                                <ul style="list-style-type: none; padding-left: 0; display: flex; flex-direction: column; gap: 0.75rem;">
+                                                    <li style="display: flex; gap: 0.5rem;">
+                                                        <span style="font-weight: 900; color: #2563eb;">1.</span>
+                                                        <div><strong>Soal Menyesuaikan Kemampuan (Adaptif):</strong> Buatlah 3 soal berurutan untuk 1 topik yang sama. Setel tingkat kesulitannya menjadi <strong>1 Mudah, 1 Sedang, dan 1 Sulit</strong>. Murid hanya akan melihat 1 dari 3 soal ini.</div>
+                                                    </li>
+                                                    <li style="display: flex; gap: 0.5rem;">
+                                                        <span style="font-weight: 900; color: #2563eb;">2.</span>
+                                                        <div><strong>Soal Wajib (Pasti Muncul):</strong> Jika ada soal krusial yang WAJIB dijawab semua murid tanpa kecuali, silakan buat soal tersebut, lalu <strong>duplikasikan menjadi 3 buah</strong>. Beri label Mudah pada duplikat pertama, Sedang pada duplikat kedua, dan Sulit pada duplikat ketiga.</div>
+                                                    </li>
+                                                    <li style="display: flex; gap: 0.5rem;">
+                                                        <span style="font-weight: 900; color: #2563eb;">3.</span>
+                                                        <div><strong>Lengkapi Ketiganya:</strong> Jika Anda hanya membuat variasi "Mudah" dan "Sedang" namun murid yang masuk berstatus "Pintar", sistem akan menggunakan metode Fallback (penyelamat) untuk menurunkan paksa level soal. Sebisa mungkin sediakan 3 level secara utuh.</div>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        ')),
+                                ])->collapsible()->collapsed(false),
+                            // 👆 ============================= 👆
+
                             Forms\Components\Repeater::make('questions')
                                 ->relationship('questions')
                                 ->label('Rentetan Soal (Ayo Berlatih)')
@@ -130,9 +161,10 @@ class ActivitiesRelationManager extends RelationManager
                                                 'image_bottom' => 'Gambar di Bawah',
                                             ])->default('image_top')->required()->label('Posisi Gambar'),
                                         
+                                        // UBAH LABEL UNTUK MENEGASKAN
                                         Forms\Components\Select::make('difficulty')
                                             ->options(['easy'=>'🌟 Mudah', 'medium'=>'⭐⭐ Sedang', 'hard'=>'🔥 Sulit (HOTS)'])
-                                            ->default('medium')->required()->label('Tingkat Kesulitan'),
+                                            ->default('medium')->required()->label('Tingkat Kesulitan AI (Wajib Set)'),
                                     ]),
 
                                     Forms\Components\Section::make('Konten Pertanyaan')
