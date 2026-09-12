@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('modules', function (Blueprint $table) {
             $table->id();
             $table->string('title');
+            $table->integer('sort_order')->default(0);
             $table->text('description')->nullable();
             $table->string('cover_image')->nullable();
             $table->string('access_pin', 6)->nullable();

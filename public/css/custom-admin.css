@@ -1,0 +1,5 @@
+/* Menyembunyikan teks nama file dan ukuran bawaan Trix Editor */
+.trix-attachment .attachment__name,
+.trix-attachment .attachment__size {
+    display: none !important;
+}

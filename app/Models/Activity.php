@@ -20,6 +20,6 @@ class Activity extends Model
     // Relasi ke bawah: Memiliki Banyak Soal
     public function questions()
     {
-        return $this->hasMany(Question::class);
+        return $this->hasMany(Question::class, 'activity_id');
     }
 }

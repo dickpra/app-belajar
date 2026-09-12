@@ -26,12 +26,12 @@
                 <p class="text-blue-200 font-bold text-sm hidden md:block">Lanjutkan perjalanan belajarmu hari ini 🚀</p>
             </div>
         </div>
-        <a href="{{ route('student.logout') }}" class="bg-red-400 hover:bg-red-500 px-4 md:px-6 py-2 md:py-3 rounded-full font-black text-white shadow-[0_4px_0_#b91c1c] bubbly-button border-2 border-white">
+        {{-- <a href="{{ route('student.logout') }}" class="bg-red-400 hover:bg-red-500 px-4 md:px-6 py-2 md:py-3 rounded-full font-black text-white shadow-[0_4px_0_#b91c1c] bubbly-button border-2 border-white">
             Keluar
-        </a>
+        </a> --}}
     </div>
 
-    <div class="max-w-2xl mx-auto px-4 py-12 relative">
+    <div class="max-w-2xl mx-auto px-4 py-12 pb-32 relative">
         
         <div class="absolute top-10 bottom-20 left-1/2 transform -translate-x-1/2 w-6 md:w-8 bg-blue-100 rounded-full z-0"></div>
 
@@ -44,12 +44,10 @@
             @forelse($modules as $index => $module)
                 @php
                     $isCompleted = in_array($module->id, $completedModuleIds);
+                    $isInProgress = in_array($module->id, $inProgressModuleIds ?? []); // 👈 Deteksi status Lanjut
                     $isUnlocked = $previousCompleted;
                     
-                    // Simpan status modul ini untuk mengecek apakah modul berikutnya boleh dibuka
                     $previousCompleted = $isCompleted; 
-
-                    // Membuat efek Zig-Zag ala Duolingo (bergantian serong kiri & kanan)
                     $translateClass = $index % 2 == 0 ? '-translate-x-6 md:-translate-x-12' : 'translate-x-6 md:translate-x-12';
                     $randomEmoji = $emojis[$module->id % count($emojis)];
                 @endphp
@@ -58,23 +56,55 @@
                     
                     @if($isUnlocked)
                         <button onclick="bukaModalPin({{ $module->id }}, '{{ $module->access_pin ? 'yes' : 'no' }}', '{{ addslashes($module->title) }}')" 
-                            class="group relative bg-white w-[260px] md:w-[320px] rounded-[2rem] border-4 {{ $isCompleted ? 'border-green-400 shadow-[0_8px_0_#4ade80]' : 'border-blue-400 shadow-[0_8px_0_#60a5fa]' }} p-6 text-center bubbly-button hover:-translate-y-2">
+                            class="group relative bg-white w-[260px] md:w-[320px] rounded-[2rem] border-4 
+                            {{ $isCompleted ? 'border-green-400 shadow-[0_8px_0_#4ade80]' : ($isInProgress ? 'border-orange-400 shadow-[0_8px_0_#fb923c]' : 'border-blue-400 shadow-[0_8px_0_#60a5fa]') }} 
+                            p-6 text-center bubbly-button hover:-translate-y-2">
                             
-                            <div class="absolute -top-10 left-1/2 transform -translate-x-1/2 w-20 h-20 rounded-full border-4 border-white flex items-center justify-center text-4xl shadow-md {{ $isCompleted ? 'bg-green-400' : 'bg-blue-400' }}">
+                            <div class="absolute -top-10 left-1/2 transform -translate-x-1/2 w-20 h-20 rounded-full border-4 border-white flex items-center justify-center text-4xl shadow-md 
+                                {{ $isCompleted ? 'bg-green-400' : ($isInProgress ? 'bg-orange-400' : 'bg-blue-400') }}">
                                 {{ $isCompleted ? '⭐' : $randomEmoji }}
                             </div>
 
                             <div class="mt-8">
-                                <h3 class="text-xl font-black {{ $isCompleted ? 'text-green-600' : 'text-blue-600' }} leading-tight mb-2">{{ $module->title }}</h3>
+                                <h3 class="text-xl font-black {{ $isCompleted ? 'text-green-600' : ($isInProgress ? 'text-orange-600' : 'text-blue-600') }} leading-tight mb-2">{{ $module->title }}</h3>
                                 
                                 @if($isCompleted)
-                                    <span class="inline-block bg-green-100 text-green-700 font-bold px-4 py-1.5 rounded-full text-sm">Selesai ✅</span>
+                                @php
+                                    // Cek apakah tugas di modul ini sudah dinilai oleh guru dan ambil rata-ratanya
+                                    $avgScore = \App\Models\ActivitySubmission::where('student_id', session('student_id') ?? auth()->id())
+                                        ->whereHas('activity', fn($q) => $q->where('module_id', $module->id))
+                                        ->where('status', 'dinilai')
+                                        ->avg('total_score');
+                                @endphp
+                                
+                                @if(!is_null($avgScore))
+                                    <!-- JIKA SUDAH DINILAI GURU -->
+                                    <div class="flex flex-col items-center gap-1.5 mt-1">
+                                        <span class="inline-block bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-black px-4 py-1 rounded-full border-2 border-white shadow-sm text-sm uppercase tracking-wider">
+                                            Skor: {{ round($avgScore) }} 🏆
+                                        </span>
+                                        <div class="flex gap-1 text-yellow-400 text-base drop-shadow-sm animate-pulse">
+                                            @if($avgScore >= 80) ⭐⭐⭐ 
+                                            @elseif($avgScore >= 50) ⭐⭐ 
+                                            @else ⭐ 
+                                            @endif
+                                        </div>
+                                    </div>
+                                @else
+                                    <!-- JIKA SELESAI TAPI BELUM DINILAI -->
+                                    <span class="inline-block bg-emerald-100 text-emerald-700 font-black px-4 py-1.5 rounded-full text-xs border-2 border-emerald-200 uppercase tracking-widest">
+                                        ⏳ Menunggu Nilai
+                                    </span>
+                                @endif
+                            @elseif($isInProgress)
+                                    <span class="inline-block bg-orange-500 text-white font-black px-5 py-2 rounded-full border-2 border-white shadow-sm">LANJUT ➔</span>
                                 @else
                                     <span class="inline-block bg-yellow-400 text-yellow-900 font-black px-5 py-2 rounded-full border-2 border-white shadow-sm">MULAI ➔</span>
                                 @endif
                             </div>
                         </button>
                     @else
+                        <!-- (Blok Kode Card Terkunci / Abu-abu Biarkan Sama Seperti Aslinya) -->   
                         <div class="relative bg-gray-100 w-[260px] md:w-[320px] rounded-[2rem] border-4 border-gray-300 p-6 text-center shadow-[0_8px_0_#d1d5db] opacity-80 cursor-not-allowed">
                             
                             <div class="absolute -top-10 left-1/2 transform -translate-x-1/2 w-20 h-20 rounded-full border-4 border-white flex items-center justify-center text-4xl shadow-md bg-gray-300">
@@ -126,6 +156,8 @@
         </div>
     </div>
 
+   @include('student.navbar-bawah')
+   
     <script>
         let currentModuleId = null;
 

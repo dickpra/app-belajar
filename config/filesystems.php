@@ -39,10 +39,19 @@ return [
         // ==========================================
         // TAMBAHKAN DISK INI
         // ==========================================
+        // DISK KHUSUS GAMBAR RAHASIA
         'modul_rahasia' => [
             'driver' => 'local',
-            'root' => storage_path('app'), // Tetap simpan di folder aman
-            'url' => env('APP_URL').'/private-image', // OTOMATIS DIARAHKAN KE SATPAM KITA!
+            'root' => storage_path('app'), 
+            'url' => env('APP_URL').'/private-image', 
+            'visibility' => 'private',
+        ],
+
+        // DISK KHUSUS VIDEO RAHASIA
+        'modul_rahasia_video' => [
+            'driver' => 'local',
+            'root' => storage_path('app'), 
+            'url' => env('APP_URL').'/private-video', 
             'visibility' => 'private',
         ],
 

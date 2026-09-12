@@ -57,7 +57,7 @@
                     </video>
                 </div>
             @endif
-            
+
             <!-- Teks Pertanyaan -->
             <div class="prose prose-blue prose-lg font-bold text-slate-800 w-full max-w-full leading-loose">
                 @php
@@ -146,7 +146,7 @@
                     @endphp
 
                     <div class="text-sm font-black text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                        <span>👆</span> Klik kotak kiri, lalu pasangannya!
+                        <span>👆</span> Pasangkan kotak di sisi kiri dan kanan (bisa pilih yang mana saja dulu)!
                     </div>
                     <div class="matching-wrapper relative bg-slate-50 p-4 md:p-8 rounded-3xl border-[3px] border-slate-200" id="match-wrap-{{ $question->id }}">
                         <svg class="absolute inset-0 w-full h-full pointer-events-none z-10" id="svg-canvas-{{ $question->id }}"></svg>
@@ -230,10 +230,10 @@
                                                     let btnKanan = Array.from(document.querySelectorAll(`.btn-kanan-${soalId}`)).find(el => el.dataset.nilai == val);
                                                     
                                                     if (btnKiri && btnKanan) {
-                                                        btnKanan.classList.add('border-green-500', 'bg-green-50');
+                                                        btnKanan.classList.add('border-green-500', 'bg-green-50', 'terjawab');
                                                         btnKanan.querySelector('.konektor-kanan').classList.replace('bg-slate-200', 'bg-green-500');
                                                         
-                                                        btnKiri.classList.add('border-green-500', 'bg-green-50');
+                                                        btnKiri.classList.add('border-green-500', 'bg-green-50', 'terjawab');
                                                         btnKiri.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
                                                         btnKiri.querySelector('.konektor-kiri').classList.replace('bg-slate-200', 'bg-green-500');
                                                         btnKiri.querySelector('.konektor-kiri').classList.replace('bg-blue-500', 'bg-green-500');

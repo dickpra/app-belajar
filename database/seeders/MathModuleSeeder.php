@@ -13,24 +13,16 @@ class MathModuleSeeder extends Seeder
         $now = Carbon::now();
 
         // ==========================================
-        // 0. INSERT MODUL UTAMA
+        // FUNGSI HELPER: Penyeragaman Kolom Pertanyaan (ANTI ERROR SQL)
         // ==========================================
-        $moduleId = DB::table('modules')->insertGetId([
-            'title' => 'Topik: Bilangan (Minggu 3)',
-            'description' => 'Menyusun bilangan cacah 21-50 sebagai kombinasi puluhan dan satuan',
-            'is_active' => true,
-            'is_adaptive' => false,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        // Fungsi bantuan untuk menstandarkan kolom pertanyaan
-        // Agar tidak ada lagi error "Column count doesn't match"
         $formatQuestion = function ($data) use ($now) {
             return array_merge([
+                'image' => null,
+                'sign_language_video' => null,
                 'correct_answer' => null,
                 'true_false_answer' => null,
                 'correction_text' => null,
+                'answer_explanation' => null,
                 'layout_position' => 'image_top',
                 'options' => json_encode([]),
                 'created_at' => $now,
@@ -39,16 +31,46 @@ class MathModuleSeeder extends Seeder
         };
 
         // ==========================================
-        // 1. AKTIVITAS 1.1
+        // 0. INSERT MODUL UTAMA
+        // ==========================================
+        $moduleId = DB::table('modules')->insertGetId([
+            'title' => 'Topik: Bilangan (Fase A) - Minggu 3',
+            'description' => 'Menyusun bilangan cacah 21-50 sebagai kombinasi puluhan dan satuan',
+            'is_active' => true,
+            'is_adaptive' => false,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        // ==========================================
+        // 1. AKTIVITAS 1.1: Mengelompokkan Benda
         // ==========================================
         $act1_1 = DB::table('activities')->insertGetId([
             'module_id' => $moduleId,
             'title' => 'Aktivitas 1.1 Mengelompokkan Benda ke dalam Wadah Berkapasitas 10',
             'stage_type' => 'materi',
-            'assessment_metrics' => json_encode(['numerasi' => ['ML', 'CeT'], 'fase' => ['Kon', 'Pik'], 'steam' => ['M']]),
+            'assessment_metrics' => json_encode([
+                'numerasi' => ['ML', 'MP', 'CeT'], 
+                'fase' => ['Kon', 'Pik'], 
+                'steam' => ['M', 'A']
+            ]),
             'stages' => json_encode([
-                ['tipe_tahapan' => 'materi', 'konten_tahapan' => '<p><strong>Tujuan:</strong> Melalui penggunaan benda konkret, siswa mampu membentuk kelompok puluhan dengan cara mengelompokkan benda ke dalam wadah yang masing-masing berisi 10 benda.</p>'],
-                ['tipe_tahapan' => 'amati', 'konten_tahapan' => '<p>Amati setiap kelompok benda dengan saksama. Setiap kelompok terdiri atas 10 benda... 10 benda yang dikelompokkan menjadi satu disebut 1 puluhan.</p>'],
+                [
+                    'tipe_tahapan' => 'materi', 
+                    'konten_tahapan' => '<p><strong>Tujuan Aktivitas:</strong> Melalui penggunaan benda konkret, siswa mampu membentuk kelompok puluhan dengan cara mengelompokkan benda ke dalam wadah yang masing-masing berisi 10 benda.</p>'
+                ],
+                [
+                    'tipe_tahapan' => 'berpikir', 
+                    'konten_tahapan' => '<p><strong>Pertanyaan Pemantik:</strong><br>1. Mana yang lebih mudah dihitung?<br>2. Kalau wadah sudah penuh, apa perlu dihitung lagi?<br>3. Mengapa hasilnya 24?</p>'
+                ],
+                [
+                    'tipe_tahapan' => 'amati', 
+                    'konten_tahapan' => '<p><strong>Ayo Mengamati:</strong> Untuk menghitung banyak benda, kita dapat mengelompokkan setiap 10 benda. Contoh: Satu kotak berisi 10 penghapus, Satu wadah berisi 10 telur, Satu ikat berisi 10 pensil.</p>'
+                ],
+                [
+                    'tipe_tahapan' => 'simpulkan', 
+                    'konten_tahapan' => '<p><strong>Konsep Penting!!!</strong><br>Puluhan sebagai Satu Unit: Sepuluh satuan dapat digabungkan menjadi satu puluhan.<br>Nilai Tempat: Setiap bilangan dua digit tersusun atas digit puluhan dan digit satuan.</p>'
+                ]
             ]),
             'created_at' => $now, 'updated_at' => $now,
         ]);
@@ -56,21 +78,21 @@ class MathModuleSeeder extends Seeder
         DB::table('questions')->insert([
             $formatQuestion([
                 'activity_id' => $act1_1,
-                'question_text' => '<p>Berapa banyak bola semuanya?</p>',
+                'question_text' => '<p>Perhatikan gambar bola pingpong di dalam kotak. <strong>Berapa banyak bola semuanya? _____</strong></p>',
                 'answer_format' => 'number_input',
                 'difficulty' => 'easy',
                 'correct_answer' => '24',
             ]),
             $formatQuestion([
                 'activity_id' => $act1_1,
-                'question_text' => '<p>Bilangan yang terbentuk adalah ________</p>',
+                'question_text' => '<p>Perhatikan susunan mobil mainan. Terdapat 3 kotak penuh dan 2 mobil di luar kotak. <strong>Bilangan yang terbentuk adalah ________</strong></p>',
                 'answer_format' => 'number_input',
                 'difficulty' => 'easy',
                 'correct_answer' => '32',
             ]),
             $formatQuestion([
                 'activity_id' => $act1_1,
-                'question_text' => '<p>Berapa banyak kelereng semuanya? ________</p>',
+                'question_text' => '<p>Terdapat 4 bungkus kelereng (masing-masing berisi 10). <strong>Berapa banyak kelereng semuanya? ________</strong></p>',
                 'answer_format' => 'number_input',
                 'difficulty' => 'easy',
                 'correct_answer' => '40',
@@ -78,15 +100,26 @@ class MathModuleSeeder extends Seeder
         ]);
 
         // ==========================================
-        // 2. AKTIVITAS 1.2
+        // 2. AKTIVITAS 1.2: Menentukan banyak puluhan dan satuan
         // ==========================================
         $act1_2 = DB::table('activities')->insertGetId([
             'module_id' => $moduleId,
-            'title' => 'Aktivitas 1.2. Menentukan banyak puluhan dan satuan dari hasil pengelompokan',
+            'title' => 'Aktivitas 1.2. Menentukan banyak puluhan dan satuan dari hasil pengelompokan benda',
             'stage_type' => 'materi',
-            'assessment_metrics' => json_encode(['numerasi' => ['ML', 'PS', 'CeT'], 'fase' => ['Kon', 'Pik'], 'steam' => []]),
+            'assessment_metrics' => json_encode([
+                'numerasi' => ['ML', 'PS', 'CeT'], 
+                'fase' => ['Kon', 'Pik'], 
+                'steam' => []
+            ]),
             'stages' => json_encode([
-                ['tipe_tahapan' => 'materi', 'konten_tahapan' => '<p>Puluhan sebagai Satu Unit: Sepuluh satuan dapat digabungkan menjadi satu puluhan...</p>'],
+                [
+                    'tipe_tahapan' => 'materi', 
+                    'konten_tahapan' => '<p><strong>Tujuan Aktivitas:</strong> Melalui kegiatan memverifikasi hasil pengelompokan benda terhadap bilangan target, siswa mampu mencocokkan susunan wadah dan sisa benda dengan bilangan yang dimaksud, serta mengidentifikasi letak kekeliruan jika tidak cocok.</p>'
+                ],
+                [
+                    'tipe_tahapan' => 'amati', 
+                    'konten_tahapan' => '<p><strong>Memahami Puluhan dan Satuan:</strong> Pada bilangan dua angka, angka pertama menunjukkan banyaknya puluhan. Angka kedua menunjukkan banyaknya satuan. Contoh: Bilangan 35 berarti 3 puluhan dan 5 satuan.</p>'
+                ],
             ]),
             'created_at' => $now, 'updated_at' => $now,
         ]);
@@ -136,7 +169,7 @@ class MathModuleSeeder extends Seeder
             ]),
             $formatQuestion([
                 'activity_id' => $act1_2,
-                'question_text' => '<p>Budi memiliki 4 kantong kelereng. Setiap kantong berisi 10 kelereng. Masih ada 5 kelereng di luar kantong.<br><strong>Berapa jumlah seluruh kelereng Budi?</strong></p>',
+                'question_text' => '<p>4. Budi memiliki 4 kantong kelereng. Setiap kantong berisi 10 kelereng. Masih ada 5 kelereng di luar kantong.<br><strong>Berapa jumlah seluruh kelereng Budi?</strong></p>',
                 'answer_format' => 'number_input',
                 'difficulty' => 'medium',
                 'correct_answer' => '45',
@@ -144,15 +177,26 @@ class MathModuleSeeder extends Seeder
         ]);
 
         // ==========================================
-        // 3. AKTIVITAS 1.3
+        // 3. AKTIVITAS 1.3: Menggabungkan dan Menjodohkan
         // ==========================================
         $act1_3 = DB::table('activities')->insertGetId([
             'module_id' => $moduleId,
             'title' => 'Aktivitas 1.3. Menggabungkan puluhan dan satuan menjadi bilangan cacah, lalu menuliskannya',
             'stage_type' => 'materi',
-            'assessment_metrics' => json_encode(['numerasi' => ['ML', 'MP', 'CeT'], 'fase' => ['Pik'], 'steam' => []]),
+            'assessment_metrics' => json_encode([
+                'numerasi' => ['ML', 'MP', 'CeT'], 
+                'fase' => ['Pik'], 
+                'steam' => []
+            ]),
             'stages' => json_encode([
-                ['tipe_tahapan' => 'amati', 'konten_tahapan' => '<p>Guru mendemonstrasikan cara membentuk bilangan: 2 puluhan = 20, 3 satuan = 3, 20 + 3 = 23.</p>'],
+                [
+                    'tipe_tahapan' => 'materi', 
+                    'konten_tahapan' => '<p><strong>Tujuan Aktivitas:</strong> Melalui penulisan notasi, siswa mampu menuliskan notasi simbolik bilangan cacah 21-50 secara benar.</p>'
+                ],
+                [
+                    'tipe_tahapan' => 'amati', 
+                    'konten_tahapan' => '<p>Guru mendemonstrasikan cara membentuk bilangan:<br>2 puluhan = 20<br>3 satuan = 3<br>20 + 3 = 23</p>'
+                ],
             ]),
             'created_at' => $now, 'updated_at' => $now,
         ]);
@@ -168,7 +212,6 @@ class MathModuleSeeder extends Seeder
                     ['teks_pilihan' => '3 puluhan 0 satuan', 'matching_right' => '30'],
                     ['teks_pilihan' => '4 puluhan 2 satuan', 'matching_right' => '42'],
                     ['teks_pilihan' => '4 puluhan 3 satuan', 'matching_right' => '43'],
-                    ['teks_pilihan' => '4 puluhan 0 satuan', 'matching_right' => '40'],
                     ['teks_pilihan' => '2 puluhan 4 satuan', 'matching_right' => '24'],
                     ['teks_pilihan' => '3 puluhan 4 satuan', 'matching_right' => '34'],
                     ['teks_pilihan' => '3 puluhan 5 satuan', 'matching_right' => '35'],
@@ -179,15 +222,26 @@ class MathModuleSeeder extends Seeder
         ]);
 
         // ==========================================
-        // 4. AKTIVITAS 2.1
+        // 4. AKTIVITAS 2.1: Menentukan Bilangan dari Gambar
         // ==========================================
         $act2_1 = DB::table('activities')->insertGetId([
             'module_id' => $moduleId,
             'title' => 'Aktivitas 2.1 Menentukan Bilangan dari Gambar Puluhan dan Satuan',
             'stage_type' => 'materi',
-            'assessment_metrics' => json_encode(['numerasi' => ['ML', 'MP'], 'fase' => ['Pik'], 'steam' => ['A']]),
+            'assessment_metrics' => json_encode([
+                'numerasi' => ['ML', 'MP'], 
+                'fase' => ['Pik'], 
+                'steam' => ['A']
+            ]),
             'stages' => json_encode([
-                ['tipe_tahapan' => 'materi', 'konten_tahapan' => '<p>Siswa menentukan bilangan cacah 21–50 dari representasi piktorial berupa wadah puluhan dan benda di luar wadah adalah satuan.</p>'],
+                [
+                    'tipe_tahapan' => 'materi', 
+                    'konten_tahapan' => '<p><strong>Tujuan Aktivitas:</strong> Siswa mampu menentukan bilangan cacah 21–50 dari representasi piktorial berupa wadah puluhan dan benda di luar wadah adalah satuan.</p>'
+                ],
+                [
+                    'tipe_tahapan' => 'berpikir', 
+                    'konten_tahapan' => '<p><strong>Pertanyaan Pemantik:</strong><br>1. Ada berapa benda satuan yang tidak dikelompokkan?<br>2. Di mana kalian pernah melihat benda yang dikelompokkan menjadi 10 dalam kehidupan sehari-hari?</p>'
+                ],
             ]),
             'created_at' => $now, 'updated_at' => $now,
         ]);
@@ -195,256 +249,19 @@ class MathModuleSeeder extends Seeder
         DB::table('questions')->insert([
             $formatQuestion([
                 'activity_id' => $act2_1,
-                'question_text' => '<p>Rena berkata: "Ada 32 buah stroberi." Budi berkata: "Bukan, ada 23 buah stroberi."<br><strong>Siapa yang benar?</strong></p>',
-                'answer_format' => 'text_input',
-                'difficulty' => 'medium',
-                'correct_answer' => 'Budi',
+                'question_text' => '<p>Tuliskan lambang bilangan yang dibentuk oleh <strong>2 wadah penuh (20) dan 1 bola di luar wadah (1).</strong></p>',
+                'answer_format' => 'number_input',
+                'difficulty' => 'easy',
+                'correct_answer' => '21',
             ]),
             $formatQuestion([
                 'activity_id' => $act2_1,
-                'question_text' => '<p>Bagaimana kamu tahu? Tuliskan jawaban yang benar: <strong>_____ puluhan + _____ satuan = _____</strong></p>',
-                'answer_format' => 'complex_fill',
-                'difficulty' => 'medium',
-                'options' => json_encode([
-                    ['teks_pilihan' => '2'],
-                    ['teks_pilihan' => '3'],
-                    ['teks_pilihan' => '23']
-                ]),
-            ])
-        ]);
-
-        // ==========================================
-        // 5. AKTIVITAS 3.1
-        // ==========================================
-        $act3_1 = DB::table('activities')->insertGetId([
-            'module_id' => $moduleId,
-            'title' => '3.1 Menentukan Banyak Puluhan dan Satuan dari Bilangan 21–50 yang Diberikan',
-            'stage_type' => 'materi',
-            'assessment_metrics' => json_encode(['numerasi' => ['ML', 'MP', 'CiT'], 'fase' => ['Abs'], 'steam' => ['M']]),
-            'stages' => json_encode([
-                ['tipe_tahapan' => 'materi', 'konten_tahapan' => '<p>Pada bilangan dua angka, angka pertama menunjukkan banyak puluhan dan angka kedua menunjukkan banyak satuan.</p>'],
-            ]),
-            'created_at' => $now, 'updated_at' => $now,
-        ]);
-
-        DB::table('questions')->insert([
-            $formatQuestion([
-                'activity_id' => $act3_1,
-                'question_text' => '<p>1. a. Bilangan 37 terdiri atas ...</p>',
-                'answer_format' => 'multiple_choice',
-                'difficulty' => 'easy',
-                'options' => json_encode([
-                    ['teks_pilihan' => '3 puluhan dan 7 satuan', 'is_correct' => true],
-                    ['teks_pilihan' => '7 puluhan dan 3 satuan', 'is_correct' => false],
-                    ['teks_pilihan' => '2 puluhan dan 7 satuan', 'is_correct' => false],
-                ]),
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_1,
-                'question_text' => '<p>1. b. Bilangan 42 terdiri atas…</p>',
-                'answer_format' => 'multiple_choice',
-                'difficulty' => 'easy',
-                'options' => json_encode([
-                    ['teks_pilihan' => '4 puluhan dan 2 satuan', 'is_correct' => true],
-                    ['teks_pilihan' => '2 puluhan dan 4 satuan', 'is_correct' => false],
-                    ['teks_pilihan' => '4 puluhan dan 4 satuan', 'is_correct' => false],
-                ]),
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_1,
-                'question_text' => '<p>1. c. Bilangan 50 terdiri atas …</p>',
-                'answer_format' => 'multiple_choice',
-                'difficulty' => 'easy',
-                'options' => json_encode([
-                    ['teks_pilihan' => '5 puluhan dan 0 satuan', 'is_correct' => true],
-                    ['teks_pilihan' => '0 puluhan dan 5 satuan', 'is_correct' => false],
-                    ['teks_pilihan' => '5 puluhan dan 5 satuan', 'is_correct' => false],
-                ]),
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_1,
-                'question_text' => '<p>2. a. Rina mengatakan bahwa 38 terdiri atas 8 puluhan dan 3 satuan.<br>Apakah Rina benar?</p>',
-                'answer_format' => 'true_false_correction',
-                'difficulty' => 'medium',
-                'true_false_answer' => 'Salah',
-                'correction_text' => '3 puluhan dan 8 satuan',
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_1,
-                'question_text' => '<p>2. b. Budi mengatakan bahwa 45 terdiri atas 4 puluhan dan 5 satuan.<br>Apakah Budi benar?</p>',
-                'answer_format' => 'true_false_correction',
-                'difficulty' => 'easy',
-                'true_false_answer' => 'Benar',
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_1,
-                'question_text' => '<p>2. c. Siti mengatakan bahwa 50 terdiri atas 5 puluhan dan 5 satuan.<br>Apakah Siti benar?</p>',
-                'answer_format' => 'true_false_correction',
-                'difficulty' => 'medium',
-                'true_false_answer' => 'Salah',
-                'correction_text' => '5 puluhan dan 0 satuan',
-            ]),
-        ]);
-
-        // ==========================================
-        // 6. AKTIVITAS 3.2
-        // ==========================================
-        $act3_2 = DB::table('activities')->insertGetId([
-            'module_id' => $moduleId,
-            'title' => '3.2 Menuliskan Notasi Simbolik Bilangan',
-            'stage_type' => 'materi',
-            'assessment_metrics' => json_encode(['numerasi' => ['ML', 'MP', 'CiT'], 'fase' => ['Abs'], 'steam' => ['A', 'E']]),
-            'stages' => json_encode([
-                ['tipe_tahapan' => 'materi', 'konten_tahapan' => '<p>Guru menjelaskan bahwa notasi simbolik bilangan ditulis dengan menempatkan angka puluhan di depan dan angka satuan di belakang.</p>'],
-            ]),
-            'created_at' => $now, 'updated_at' => $now,
-        ]);
-
-        DB::table('questions')->insert([
-            $formatQuestion([
-                'activity_id' => $act3_2,
-                'question_text' => '<p>1. Lengkapi.<br>a. 37 = ____ + ____</p>',
-                'answer_format' => 'complex_fill',
-                'difficulty' => 'easy',
-                'options' => json_encode([['teks_pilihan' => '30'], ['teks_pilihan' => '7']]),
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_2,
-                'question_text' => '<p>1. Lengkapi.<br>b. 42 = ____ + ____</p>',
-                'answer_format' => 'complex_fill',
-                'difficulty' => 'easy',
-                'options' => json_encode([['teks_pilihan' => '40'], ['teks_pilihan' => '2']]),
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_2,
-                'question_text' => '<p>1. Lengkapi.<br>c. 28 = ____ + ____</p>',
-                'answer_format' => 'complex_fill',
-                'difficulty' => 'easy',
-                'options' => json_encode([['teks_pilihan' => '20'], ['teks_pilihan' => '8']]),
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_2,
-                'question_text' => '<p>2. Temukan Kesalahan.<br>a. 34 = 3 + 4</p>',
-                'answer_format' => 'true_false_correction',
-                'difficulty' => 'medium',
-                'true_false_answer' => 'Salah',
-                'correction_text' => '30 + 4',
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_2,
-                'question_text' => '<p>2. Temukan Kesalahan.<br>b. 46 = 40 + 6</p>',
-                'answer_format' => 'true_false_correction',
-                'difficulty' => 'easy',
-                'true_false_answer' => 'Benar',
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_2,
-                'question_text' => '<p>2. Temukan Kesalahan.<br>c. 50 = 5 + 0</p>',
-                'answer_format' => 'true_false_correction',
-                'difficulty' => 'medium',
-                'true_false_answer' => 'Salah',
-                'correction_text' => '50 + 0',
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_2,
-                'question_text' => '<p>3. Perhatikan kartu bilangan 36.<br>Dua teman menyusun bilangan di atas dengan cara berbeda:<br>Cara 1: Isi 3 wadah penuh dulu, baru letakkan 6 benda di luar.<br>Cara 2: Letakkan 6 benda di luar, baru isi 3 wadah penuh.<br><strong>Apakah menghasilkan bilangan yang sama? _____</strong></p>',
-                'answer_format' => 'text_input',
-                'difficulty' => 'medium',
-                'correct_answer' => 'Ya',
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_2,
-                'question_text' => '<p><strong>Cara mana yang lebih mudah kamu hitung? _____</strong></p>',
-                'answer_format' => 'text_input',
-                'difficulty' => 'easy',
-                'correct_answer' => 'Cara 1',
-            ]),
-        ]);
-
-        // ==========================================
-        // 7. AKTIVITAS 3.3
-        // ==========================================
-        $act3_3 = DB::table('activities')->insertGetId([
-            'module_id' => $moduleId,
-            'title' => '3.3 Menuliskan Bentuk Puluhan + Satuan',
-            'stage_type' => 'materi',
-            'assessment_metrics' => json_encode(['numerasi' => ['ML', 'MP'], 'fase' => ['Abs'], 'steam' => ['A']]),
-            'stages' => json_encode([
-                ['tipe_tahapan' => 'materi', 'konten_tahapan' => '<p>Bilangan dapat ditulis dalam bentuk puluhan dan satuan. Banyak puluhan ditulis terlebih dahulu, kemudian banyak satuan, lalu dituliskan bilangan yang terbentuk.</p>'],
-            ]),
-            'created_at' => $now, 'updated_at' => $now,
-        ]);
-
-        DB::table('questions')->insert([
-            $formatQuestion([
-                'activity_id' => $act3_3,
-                'question_text' => '<p>1. Lengkapi.<br>a. _____ puluhan + _____ satuan = 37</p>',
-                'answer_format' => 'complex_fill',
-                'difficulty' => 'easy',
-                'options' => json_encode([['teks_pilihan' => '3'], ['teks_pilihan' => '7']]),
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_3,
-                'question_text' => '<p>1. Lengkapi.<br>b. _____ puluhan + _____ satuan = 42</p>',
-                'answer_format' => 'complex_fill',
-                'difficulty' => 'easy',
-                'options' => json_encode([['teks_pilihan' => '4'], ['teks_pilihan' => '2']]),
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_3,
-                'question_text' => '<p>1. Lengkapi.<br>c. _____ puluhan + _____ satuan = 28</p>',
-                'answer_format' => 'complex_fill',
-                'difficulty' => 'easy',
-                'options' => json_encode([['teks_pilihan' => '2'], ['teks_pilihan' => '8']]),
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_3,
-                'question_text' => '<p>2. Periksa dan perbaiki jika salah.<br>a. 3 puluhan + 8 satuan = 83</p>',
-                'answer_format' => 'true_false_correction',
-                'difficulty' => 'medium',
-                'true_false_answer' => 'Salah',
-                'correction_text' => '38',
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_3,
-                'question_text' => '<p>2. Periksa dan perbaiki jika salah.<br>b. 4 puluhan + 6 satuan = 46</p>',
-                'answer_format' => 'true_false_correction',
-                'difficulty' => 'easy',
-                'true_false_answer' => 'Benar',
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_3,
-                'question_text' => '<p>2. Periksa dan perbaiki jika salah.<br>c. 5 puluhan + 0 satuan = 05</p>',
-                'answer_format' => 'true_false_correction',
-                'difficulty' => 'medium',
-                'true_false_answer' => 'Salah',
-                'correction_text' => '50',
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_3,
-                'question_text' => '<p>3. Bu Guru minta tolong. Ia punya 43 buku yang akan dimasukkan ke dalam kotak. Setiap kotak muat 10 buku.<br><strong>Berapa kotak yang terisi penuh? _____</strong></p>',
+                'question_text' => '<p>Tuliskan lambang bilangan yang dibentuk oleh <strong>3 wadah penuh (30) dan 0 bola di luar wadah.</strong></p>',
                 'answer_format' => 'number_input',
-                'difficulty' => 'medium',
-                'correct_answer' => '4',
+                'difficulty' => 'easy',
+                'correct_answer' => '30',
             ]),
-            $formatQuestion([
-                'activity_id' => $act3_3,
-                'question_text' => '<p><strong>Berapa buku yang tidak masuk ke kotak? _____</strong></p>',
-                'answer_format' => 'number_input',
-                'difficulty' => 'medium',
-                'correct_answer' => '3',
-            ]),
-            $formatQuestion([
-                'activity_id' => $act3_3,
-                'question_text' => '<p><strong>Tuliskan dalam notasi: ____ puluhan + ____ satuan = ____</strong></p>',
-                'answer_format' => 'complex_fill',
-                'difficulty' => 'medium',
-                'options' => json_encode([
-                    ['teks_pilihan' => '4'],
-                    ['teks_pilihan' => '3'],
-                    ['teks_pilihan' => '43']
-                ]),
-            ])
         ]);
+
     }
 }

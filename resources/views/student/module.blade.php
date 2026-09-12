@@ -30,6 +30,51 @@
         .prose th { background-color: #f8fafc; font-weight: 800; }
         .prose img { border-radius: 0.75rem; margin: 0.75rem auto; max-width: 100%; height: auto; border: 3px solid #e2e8f0; }
         
+        /* ==============================================================
+           PERBAIKAN GAMBAR & CAPTION TRIX EDITOR (Bawaan Filament)
+           ============================================================== */
+        .prose figure.attachment a {
+            pointer-events: none !important; /* Matikan efek klik */
+            text-decoration: none !important; /* Hilangkan garis bawah */
+            color: inherit !important; /* Matikan warna biru link */
+            cursor: default !important; /* Kembalikan kursor ke normal */
+        }
+        .prose figure.attachment .attachment__name,
+        .prose figure.attachment .attachment__size {
+            display: none !important; /* Sembunyikan teks ukuran/nama file */
+        }
+        .prose figure.attachment figcaption {
+            text-align: center !important;
+            color: #64748b !important; /* Warna abu-abu elegan (slate-500) */
+            font-size: 0.875rem !important; /* Ukuran teks lebih kecil */
+            font-style: italic; /* Cetak miring */
+            margin-top: 0.5rem;
+            font-weight: 600;
+        }
+        /* ==============================================================
+   MEMAKSA GAMBAR TRIX RESPONSIVE & BERGAYA NATIVE ANDROID
+   ============================================================== */
+/* 1. Memastikan pembungkus gambar tidak melebar melebihi layar */
+.prose figure.attachment {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 1rem 0 !important;
+    padding: 0 !important;
+    display: block;
+}
+
+/* 2. Memaksa gambar selalu pas di layar HP dengan efek kartu */
+.prose img { 
+    width: 100% !important; 
+    max-width: 100% !important; 
+    height: auto !important; 
+    object-fit: contain !important; /* Mencegah gambar gepeng */
+    border-radius: 1rem !important; /* Sudut melengkung khas Android Modern */
+    margin: 0 auto !important; 
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 4px 10px -2px rgba(59, 130, 246, 0.1); /* Efek melayang tipis biru */
+}
+        
         #sidebar { transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -201,6 +246,50 @@
                             <span>⬅️</span> Lihat Materi Lagi
                         </button>
 
+                        @if($isCompleted)
+                        @php
+                            $submission = \App\Models\ActivitySubmission::where('student_id', auth()->id()) 
+                                ->where('activity_id', $activity->id)
+                                ->first();
+                                
+                            $skorAkhir = $submission ? ($submission->total_score ?? 0) : 0;
+                            
+                            // 👈 CEK STATUS PENILAIAN DARI DATABASE DI SINI
+                            $isDinilai = $submission && $submission->status === 'dinilai';
+                        @endphp
+
+                        @if($isDinilai)
+                            <!-- JIKA SUDAH DINILAI GURU: MUNCUL BANNER BIRU -->
+                            <div class="mb-8 bg-gradient-to-r from-blue-500 to-cyan-400 p-6 rounded-[2rem] border-4 border-white shadow-[0_8px_0_#1d4ed8] text-white flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-bl-full"></div>
+                                <div class="flex items-center gap-4 relative z-10">
+                                    <div class="text-6xl drop-shadow-md">
+                                        {{ $skorAkhir >= 80 ? '🏆' : ($skorAkhir >= 60 ? '👍' : '💪') }}
+                                    </div>
+                                    <div>
+                                        <h3 class="text-2xl font-black tracking-wide uppercase">Hasil Penilaian</h3>
+                                        <p class="font-bold text-blue-100 mt-1">Pak/Bu Guru sudah memeriksa tugasmu!</p>
+                                    </div>
+                                </div>
+                                <div class="bg-white text-blue-600 px-6 py-4 rounded-2xl border-4 border-blue-200 shadow-inner relative z-10 text-center min-w-[120px]">
+                                    <span class="block text-xs font-black text-blue-400 uppercase tracking-widest mb-1">Skor Akhir</span>
+                                    <span class="text-4xl font-black">{{ $skorAkhir }}</span>
+                                </div>
+                            </div>
+                        @else
+                            <!-- JIKA BELUM DINILAI: MUNCUL BANNER TUNGGU KUNING -->
+                            <div class="mb-8 bg-amber-50 border-[3px] border-amber-300 p-6 rounded-[2rem] text-amber-800 flex items-center gap-4 shadow-sm relative overflow-hidden">
+                                <div class="text-5xl animate-bounce drop-shadow-sm relative z-10">⏳</div>
+                                <div class="relative z-10">
+                                    <h3 class="text-2xl font-black uppercase tracking-wide">Tugas Terkirim!</h3>
+                                    <p class="font-bold text-amber-700 mt-1">Pak/Bu Guru sedang mengoreksi tugasmu. Sabar ya!</p>
+                                </div>
+                                <div class="absolute -right-4 -top-4 text-8xl opacity-10 pointer-events-none">📝</div>
+                            </div>
+                        @endif
+                    @endif
+                        <!-- 👆 ==================================================== 👆 -->
+
                         <div class="flex items-center gap-3 mb-6 border-b-[3px] border-slate-100 pb-4">
                             <div class="bg-green-100 text-green-600 p-2.5 rounded-xl border-[3px] border-green-200">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
@@ -216,6 +305,58 @@
                                         'question' => $question,
                                         'qIndex' => $qIndex
                                     ])
+
+                                    <!-- 👇 CATATAN GURU PER SOAL 👇 -->
+                                    <!-- Bagian Looping Soal Anda... -->
+
+                                    <!-- Cek juga apakah $isDinilai sudah diset true oleh sistem di atas -->
+                                    @if($isCompleted && isset($isDinilai) && $isDinilai)
+                                        @php
+                                            $dbAnswer = \App\Models\StudentAnswer::where('student_id', auth()->id()) // Sesuaikan dengan cara Anda get ID murid
+                                                ->where('question_id', $question->id)
+                                                ->first();
+                                                
+                                            $scoreSoal = $dbAnswer ? ($dbAnswer->score ?? 0) : 0;
+                                            $notesGuru = $dbAnswer ? ($dbAnswer->teacher_notes ?? '') : '';
+                                        @endphp
+                                        
+                                        <div class="mt-4 bg-slate-50 border-[3px] border-slate-200 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row gap-4 relative">
+                                            <!-- Indikator Skor Per Soal -->
+                                            <div class="flex-shrink-0 flex items-center justify-center bg-white border-[3px] {{ $scoreSoal > 0 ? 'border-green-400 text-green-500' : 'border-red-400 text-red-500' }} w-16 h-16 rounded-2xl shadow-sm">
+                                                <span class="font-black text-xl">{{ $scoreSoal }}</span>
+                                            </div>
+                                            
+                                            <!-- Kotak Pesan Guru -->
+                                            <!-- Kotak Pesan Guru (Di file wrapper utama) -->
+                                        <div class="flex-1">
+                                            <span class="inline-block bg-slate-200 text-slate-600 font-black px-3 py-1 rounded-full text-[10px] uppercase tracking-widest mb-2">
+                                                💬 Pesan Guru
+                                            </span>
+                                            <p class="text-slate-700 font-bold text-sm md:text-base leading-relaxed">
+                                                @if(!empty($notesGuru))
+                                                    {{ $notesGuru }}
+                                                @else
+                                                    <i class="text-slate-400 font-medium">Tidak ada catatan khusus untuk soal ini.</i>
+                                                @endif
+                                            </p>
+
+                                            <!-- 👇 TAMBAHKAN BLOK KUNCI JAWABAN DI SINI 👇 -->
+                                            @if($scoreSoal == 0 && !empty($question->correct_answer))
+                                                <div class="mt-4 p-3 bg-amber-50 border-l-[4px] border-amber-400 rounded-r-xl inline-block w-full">
+                                                    <span class="block text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">💡 Kunci Jawaban yang Benar:</span>
+                                                    <span class="font-bold text-amber-900">{{ trim(str_replace(['"', '\\'], '', $question->correct_answer)) }}</span>
+                                                </div>
+                                            @endif
+                                            <!-- 👆 ===================================== 👆 -->
+                                        </div>
+                                            
+                                            <!-- Watermark -->
+                                            <div class="absolute right-4 top-1/2 transform -translate-y-1/2 text-5xl opacity-10 pointer-events-none">
+                                                {{ $scoreSoal > 0 ? '✅' : '❌' }}
+                                            </div>
+                                        </div>
+                                    @endif
+                                    <!-- 👆 ================================= 👆 -->
 
                                 @endforeach
                             </div>
@@ -299,12 +440,20 @@
         let isSubmitting = false;
 
         document.addEventListener("DOMContentLoaded", function() {
-            // Kita tetap cek localStorage untuk jaga-jaga kalau koneksi putus di tengah jalan
-            let savedUnlocked = localStorage.getItem(storageKey);
-            if (savedUnlocked !== null && parseInt(savedUnlocked) > highestUnlockedIndex) {
-                highestUnlockedIndex = parseInt(savedUnlocked);
-                if(highestUnlockedIndex >= totalActivities) highestUnlockedIndex = totalActivities - 1;
-                currentIndex = highestUnlockedIndex;
+            
+            // 🧹 PEMBASMI HANTU LOCAL STORAGE: 
+            // Jika database bilang murid ini di titik 0 (baru mulai atau di-reset admin),
+            // paksa hapus ingatan browser agar centang hijau palsu hilang!
+            if (highestUnlockedIndex === 0) {
+                localStorage.removeItem(storageKey);
+            } else {
+                // Biarkan sisa logika fallback berjalan normal untuk jaga-jaga koneksi putus
+                let savedUnlocked = localStorage.getItem(storageKey);
+                if (savedUnlocked !== null && parseInt(savedUnlocked) > highestUnlockedIndex) {
+                    highestUnlockedIndex = parseInt(savedUnlocked);
+                    if(highestUnlockedIndex >= totalActivities) highestUnlockedIndex = totalActivities - 1;
+                    currentIndex = highestUnlockedIndex;
+                }
             }
             
             updateNavigationUI();
@@ -395,10 +544,20 @@
                 const icon = document.getElementById(`nav-icon-${i}`);
                 btn.classList.remove('bg-blue-100', 'border-blue-500', 'text-blue-800', 'shadow-sm', 'scale-[1.02]');
                 btn.classList.add('bg-slate-50', 'border-slate-200', 'text-slate-400');
+                // Cek status akhir modul dari server (Blade)
+                let isModuleSelesai = {{ $isCompleted ? 'true' : 'false' }};
+
                 if (i <= highestUnlockedIndex) {
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     btn.classList.add('cursor-pointer', 'hover:bg-slate-100');
-                    icon.innerHTML = i < highestUnlockedIndex ? '✅' : '⭐'; 
+                    
+                    // Jika modul keseluruhan sudah disubmit, atau bukan aktivitas terakhir: beri centang hijau!
+                    if (isModuleSelesai || i < highestUnlockedIndex) {
+                        icon.innerHTML = '✅'; 
+                    } else {
+                        // Jika modul masih dikerjakan dan ini aktivitas terakhir: beri bintang kuning!
+                        icon.innerHTML = '⭐'; 
+                    }
                 } else {
                     btn.classList.add('opacity-50', 'cursor-not-allowed');
                     btn.classList.remove('cursor-pointer');
@@ -475,32 +634,60 @@
         }
 
         // =========================================================
-        // MESIN PENARIK GARIS SVG (UNTUK SOAL MATCHING)
+        // MESIN PENARIK GARIS SVG (BISA BOLAK BALIK: KIRI/KANAN BEBAS)
         // =========================================================
-        let aktifKiri = {}; 
+        let aktifSisi = {}; // Menyimpan memori sisi mana yang diklik pertama
+
         function pilihKiri(btn, soalId) {
-            document.querySelectorAll(`.btn-kiri-${soalId}`).forEach(el => {
-                el.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
-                el.querySelector('.konektor-kiri').classList.replace('bg-blue-500', 'bg-slate-200');
-                el.querySelector('.konektor-kiri').classList.replace('bg-green-500', 'bg-slate-200');
-            });
-            btn.classList.add('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
-            btn.querySelector('.konektor-kiri').classList.replace('bg-slate-200', 'bg-blue-500');
-            aktifKiri[soalId] = btn;
+            let aktif = aktifSisi[soalId];
+
+            if (!aktif || aktif.sisi === 'kiri') {
+                // 1. Pilih kotak Kiri (Birukan)
+                document.querySelectorAll(`.btn-kiri-${soalId}:not(.terjawab)`).forEach(el => {
+                    el.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
+                    el.querySelector('.konektor-kiri').classList.replace('bg-blue-500', 'bg-slate-200');
+                });
+                btn.classList.add('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
+                btn.querySelector('.konektor-kiri').classList.replace('bg-slate-200', 'bg-blue-500');
+                aktifSisi[soalId] = { sisi: 'kiri', btn: btn };
+            } else if (aktif.sisi === 'kanan') {
+                // 2. JODOH! (Tadi klik Kanan, sekarang klik Kiri)
+                eksekusiJodoh(btn, aktif.btn, soalId); 
+                aktifSisi[soalId] = null;
+            }
         }
 
         function pilihKanan(btn, soalId) {
-            if(!aktifKiri[soalId]) { alert("Pilih kotak di sebelah kiri dulu ya!"); return; }
-            let btnKiri = aktifKiri[soalId];
+            let aktif = aktifSisi[soalId];
 
-            btn.classList.add('border-green-500', 'bg-green-50');
-            btn.querySelector('.konektor-kanan').classList.replace('bg-slate-200', 'bg-green-500');
-            btnKiri.classList.replace('border-blue-500', 'border-green-500');
-            btnKiri.classList.replace('bg-blue-50', 'bg-green-50');
-            btnKiri.classList.remove('ring-4', 'ring-blue-100');
-            btnKiri.querySelector('.konektor-kiri').classList.replace('bg-blue-500', 'bg-green-500');
+            if (!aktif || aktif.sisi === 'kanan') {
+                // 1. Pilih kotak Kanan (Birukan)
+                document.querySelectorAll(`.btn-kanan-${soalId}:not(.terjawab)`).forEach(el => {
+                    el.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
+                    el.querySelector('.konektor-kanan').classList.replace('bg-blue-500', 'bg-slate-200');
+                });
+                btn.classList.add('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
+                btn.querySelector('.konektor-kanan').classList.replace('bg-slate-200', 'bg-blue-500');
+                aktifSisi[soalId] = { sisi: 'kanan', btn: btn };
+            } else if (aktif.sisi === 'kiri') {
+                // 2. JODOH! (Tadi klik Kiri, sekarang klik Kanan)
+                eksekusiJodoh(aktif.btn, btn, soalId);
+                aktifSisi[soalId] = null;
+            }
+        }
 
-            // Menyimpan jawaban dalam format JSON String agar Database Server Tidak Crash
+        function eksekusiJodoh(btnKiri, btnKanan, soalId) {
+            // 1. Kunci kedua kotak menjadi warna Hijau (dan tambahkan class 'terjawab')
+            [btnKiri, btnKanan].forEach(btn => {
+                btn.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
+                btn.classList.add('border-green-500', 'bg-green-50', 'terjawab');
+            });
+
+            // 2. Warnai konektor jadi hijau
+            btnKiri.querySelector('.konektor-kiri').className = btnKiri.querySelector('.konektor-kiri').className.replace(/bg-(slate-200|blue-500)/g, 'bg-green-500');
+            btnKanan.querySelector('.konektor-kanan').className = btnKanan.querySelector('.konektor-kanan').className.replace(/bg-(slate-200|blue-500)/g, 'bg-green-500');
+
+            // 3. Simpan Jawaban ke Database Format JSON
             let hiddenContainer = document.getElementById(`hidden-inputs-${soalId}`);
             let hiddenInput = document.getElementById(`ans-${soalId}`);
             if(!hiddenInput) {
@@ -511,24 +698,32 @@
                 hiddenInput.value = "{}";
                 hiddenContainer.appendChild(hiddenInput);
             }
+            
             let currentAns = JSON.parse(hiddenInput.value);
-            currentAns[btnKiri.dataset.nilai] = btn.dataset.nilai;
+            currentAns[btnKiri.dataset.nilai] = btnKanan.dataset.nilai; // Kiri selalu jadi kunci, Kanan jadi nilai
             hiddenInput.value = JSON.stringify(currentAns);
 
-            gambarGarisSVG(btnKiri, btn, soalId);
-            aktifKiri[soalId] = null;
+            // 4. Tarik Garis! (Pastikan fungsi ini dipanggil)
+            if(typeof gambarGarisSVG === 'function') {
+                gambarGarisSVG(btnKiri, btnKanan, soalId);
+            }
         }
 
         function gambarGarisSVG(elKiri, elKanan, soalId) {
             let svg = document.getElementById(`svg-canvas-${soalId}`);
             let container = document.getElementById(`match-wrap-${soalId}`);
-            let lineId = `line-${soalId}-${elKiri.dataset.nilai.replace(/[^a-zA-Z0-9]/g, '')}`;
+            
+            if (!svg || !container) return; // Pengaman anti-crash
+
+            // Bersihkan ID agar bisa dipakai membuat garis unik
+            let cleanId = elKiri.dataset.nilai.replace(/[^a-zA-Z0-9]/g, '');
+            let lineId = `line-${soalId}-${cleanId}`;
             let line = document.getElementById(lineId);
             
             if(!line) {
                 line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                 line.id = lineId;
-                line.setAttribute('stroke', '#22c55e');
+                line.setAttribute('stroke', '#22c55e'); // Warna Hijau Tailwind
                 line.setAttribute('stroke-width', '6');
                 line.setAttribute('stroke-linecap', 'round');
                 line.style.strokeDasharray = "1000";
@@ -541,11 +736,13 @@
             let rectKiri = elKiri.querySelector('.konektor-kiri').getBoundingClientRect();
             let rectKanan = elKanan.querySelector('.konektor-kanan').getBoundingClientRect();
 
+            // Kalkulasi titik tengah konektor
             line.setAttribute('x1', rectKiri.left + (rectKiri.width/2) - rectContainer.left);
             line.setAttribute('y1', rectKiri.top + (rectKiri.height/2) - rectContainer.top);
             line.setAttribute('x2', rectKanan.left + (rectKanan.width/2) - rectContainer.left);
             line.setAttribute('y2', rectKanan.top + (rectKanan.height/2) - rectContainer.top);
 
+            // Animasi garis muncul
             setTimeout(() => { line.style.strokeDashoffset = "0"; }, 10);
         }
 
@@ -690,10 +887,14 @@
             const originalText = btn.innerHTML;
             btn.innerHTML = "Menyimpan... ⏳"; btn.disabled = true;
 
+            // 👇 BUNGKUS DATA DAN TAMBAHKAN KUNCI FINAL 👇
+            let dataKirim = prepareSafeFormData(form);
+            dataKirim.append('is_final_submit', '1'); 
+
             fetch(`/ruang-belajar/modul/${moduleId}/simpan-aktivitas`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': ambilToken(), 'Accept': 'application/json' },
-                body: prepareSafeFormData(form) // Kirim data yang sudah di-sterilkan
+                body: dataKirim // <-- Gunakan dataKirim di sini
             })
             .then(response => response.json())
             .then(data => {
@@ -718,18 +919,20 @@
             const originalText = btn.innerHTML;
             btn.innerHTML = "Mengirim... 🚀"; btn.disabled = true;
 
+            // 👇 BUNGKUS DATA DAN TAMBAHKAN KUNCI FINAL 👇
+            let dataKirim = prepareSafeFormData(form);
+            dataKirim.append('is_final_submit', '1'); 
+
             fetch(`/ruang-belajar/modul/${moduleId}/simpan-aktivitas`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': ambilToken(), 'Accept': 'application/json' },
-                body: prepareSafeFormData(form)
+                body: dataKirim // <-- Gunakan dataKirim di sini
             })
             .then(response => response.json())
             .then(data => {
                 if(data.status === 'success') {
-                    // Hapus jejak Resume 
                     localStorage.removeItem(storageKey);
                     
-                    // 1. Tembakkan Animasi Hujan Kertas (Confetti)
                     var duration = 3000;
                     var end = Date.now() + duration;
                     (function frame() {
@@ -738,7 +941,6 @@
                         if (Date.now() < end) requestAnimationFrame(frame);
                     }());
 
-                    // 2. Munculkan Modal Piala Bergoyang
                     const modal = document.getElementById('celebrationModal');
                     const content = document.getElementById('celebrationContent');
                     modal.classList.remove('hidden');

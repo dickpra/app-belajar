@@ -16,6 +16,9 @@ return new class extends Migration
             $table->foreignId('student_id')->constrained()->cascadeOnDelete();
             $table->foreignId('question_id')->constrained()->cascadeOnDelete();
             $table->text('answer_value')->nullable(); // Jawaban murid (angka/teks/opsi)
+            $table->boolean('is_correct')->nullable(); // Untuk auto-grading pilihan ganda
+            $table->integer('score')->nullable();      // Untuk nilai angka (0-100)
+            $table->text('teacher_notes')->nullable(); // Catatan perbaikan dari guru
             $table->timestamps();
         });
     }

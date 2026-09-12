@@ -10,8 +10,8 @@
         "awcodes/filament-tiptap-editor": "^3.5",
         "filament/filament": "^3.2",
         "guzzlehttp/guzzle": "^7.2",
-        "inertiajs/inertia-laravel": "^2.0",
         "joshembling/image-optimizer": "^1.6",
+        "kahusoftware/filament-ckeditor-field": "^1.2",
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8"

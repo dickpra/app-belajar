@@ -15,4 +15,9 @@ class Student extends Model
     {
         return $this->hasMany(StudentAnswer::class, 'student_id');
     }
+
+    public function activitySubmissions()
+    {
+        return $this->hasMany(ActivitySubmission::class);
+    }
 }

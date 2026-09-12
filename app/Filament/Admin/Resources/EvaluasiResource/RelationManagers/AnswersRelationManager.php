@@ -51,26 +51,28 @@ class AnswersRelationManager extends RelationManager
                     }),
             ])
             ->headerActions([
-            Tables\Actions\Action::make('reset_modul')
-                ->label('🔄 Reset Jawaban Modul Ini')
-                ->color('danger')
-                ->requiresConfirmation()
-                ->modalHeading('Reset Jawaban Murid?')
-                ->modalDescription('Apakah Anda yakin ingin menghapus semua jawaban murid ini di modul terkait? Murid harus mengulang mengerjakan dari awal.')
-                ->action(function (\Filament\Resources\RelationManagers\RelationManager $livewire) {
-                    // Ambil ID Murid dari relasi halaman saat ini
-                    $studentId = $livewire->ownerRecord->id;
-                    
-                    // Eksekusi: Hapus semua jawaban murid ini
-                    // (Anda bisa memfilter berdasarkan modul_id jika ingin lebih spesifik)
-                    \App\Models\StudentAnswer::where('student_id', $studentId)->delete();
-                    
-                    \Filament\Notifications\Notification::make()
-                        ->title('Jawaban Berhasil Direset!')
-                        ->success()
-                        ->send();
-                }),
-        ])
+                Tables\Actions\Action::make('reset_modul')
+                    ->label('🔄 Reset Jawaban & Status')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Reset Jawaban Murid?')
+                    ->modalDescription('Apakah Anda yakin ingin menghapus semua jawaban beserta status pengerjaan murid ini? Murid harus mengulang mengerjakan dari awal.')
+                    ->action(function (\Filament\Resources\RelationManagers\RelationManager $livewire) {
+                        // Ambil ID Murid dari relasi halaman saat ini
+                        $studentId = $livewire->ownerRecord->id;
+                        
+                        // 1. Hapus Kertas Jawaban Murid
+                        \App\Models\StudentAnswer::where('student_id', $studentId)->delete();
+                        
+                        // 2. Hapus "Map Tugas" (INI YANG MENCEGAH BUG NYANTOL)
+                        \App\Models\ActivitySubmission::where('student_id', $studentId)->delete();
+                        
+                        \Filament\Notifications\Notification::make()
+                            ->title('Jawaban & Status Berhasil Direset!')
+                            ->success()
+                            ->send();
+                    }),
+            ])
             // Kelompokkan tabel otomatis berdasarkan aktivitas
             ->defaultGroup('question.activity.title')
             ->defaultSort('created_at', 'asc');

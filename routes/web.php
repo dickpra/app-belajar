@@ -45,19 +45,47 @@ Route::get('/private-image/{path}', function ($path) {
 // ========================================================
 Route::prefix('ruang-belajar')->middleware([CekLoginMurid::class])->group(function () {
     
-    // Halaman Utama Murid (Dashboard)
     Route::get('/dashboard', function () {
         $studentId = session('student_id');
-        $modules = \App\Models\Module::where('is_active', true)->orderBy('created_at', 'desc')->get();
         
-        $completedModuleIds = \App\Models\StudentAnswer::where('student_id', $studentId)
-            ->join('questions', 'student_answers.question_id', '=', 'questions.id')
-            ->join('activities', 'questions.activity_id', '=', 'activities.id')
-            ->pluck('activities.module_id')
-            ->unique()
-            ->toArray();
+        $modules = \App\Models\Module::with('activities')
+            ->where('is_active', true)
+            ->orderBy('sort_order', 'asc')
+            ->get();
+        
+        $completedModuleIds = [];
+        $inProgressModuleIds = []; // 👈 ARRAY BARU UNTUK STATUS 'LANJUT'
 
-        return view('student.dashboard', compact('modules', 'completedModuleIds'));
+        foreach ($modules as $module) {
+            $lastActivity = $module->activities->last();
+            $isCompleted = false;
+            
+            // 1. Cek apakah sudah Selesai (Tamat)
+            if ($lastActivity) {
+                $isCompleted = \App\Models\ActivitySubmission::where('student_id', $studentId)
+                    ->where('activity_id', $lastActivity->id)
+                    ->exists();
+
+                if ($isCompleted) {
+                    $completedModuleIds[] = $module->id;
+                }
+            }
+
+            // 2. Jika belum selesai, cek apakah "Sedang Dikerjakan" (Lanjut)
+            if (!$isCompleted) {
+                $hasStarted = \App\Models\StudentAnswer::where('student_id', $studentId)
+                    ->whereHas('question.activity', function($q) use ($module) {
+                        $q->where('module_id', $module->id);
+                    })->exists();
+
+                if ($hasStarted) {
+                    $inProgressModuleIds[] = $module->id;
+                }
+            }
+        }
+
+        // Kirim $inProgressModuleIds ke file Blade
+        return view('student.dashboard', compact('modules', 'completedModuleIds', 'inProgressModuleIds'));
     })->name('student.dashboard');
 
     // Endpoint Verifikasi PIN Modul
@@ -69,6 +97,27 @@ Route::prefix('ruang-belajar')->middleware([CekLoginMurid::class])->group(functi
     // Endpoint Menyimpan Jawaban
     Route::post('/modul/{module_id}/simpan-aktivitas', [StudentModuleController::class, 'saveActivity'])->name('student.save_activity');
 
+    // 2. Raporku
+    Route::get('/raporku', function () {
+        $studentId = session('student_id') ?? auth()->id();
+        $submissions = \App\Models\ActivitySubmission::with('activity.module')
+            ->where('student_id', $studentId)
+            ->where('status', 'dinilai')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+            
+        return view('student.raporku', compact('submissions'));
+    })->name('student.raporku');
+
+    // 3. Panduan
+    Route::get('/panduan', function () {
+        return view('student.panduan');
+    })->name('student.panduan');
+
+    // 4. Profil
+    Route::get('/profil', function () {
+        return view('student.profil');
+    })->name('student.profil');
 });
 
 Route::get('/private-video/{path}', function ($path) {

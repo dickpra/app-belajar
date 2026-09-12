@@ -3,12 +3,13 @@
 namespace App\Filament\Admin\Resources\ModuleResource\Pages;
 
 use App\Filament\Admin\Resources\ModuleResource;
+use App\Models\Module;
 use Filament\Actions;
-use Filament\Resources\Pages\ListRecords;
+use Filament\Forms;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
-use App\Models\Module;
 
 class ListModules extends ListRecords
 {
@@ -17,93 +18,105 @@ class ListModules extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Actions\CreateAction::make()->label('+ Rancang Modul Baru'),
+            
+            // ==========================================
+            // TOMBOL IMPORT ZIP
+            // ==========================================
             Actions\Action::make('import_zip')
                 ->label('Import Modul (ZIP)')
                 ->icon('heroicon-o-arrow-up-tray')
                 ->color('warning')
                 ->form([
-                    \Filament\Forms\Components\FileUpload::make('zip_file')
-                        ->label('Upload File Backup ZIP')
-                        ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed', 'application/zip-compressed'])
+                    Forms\Components\FileUpload::make('zip_file')
+                        ->label('Upload File ZIP Modul')
+                        ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed'])
                         ->disk('local') // Simpan sementara di storage/app/
-                        ->directory('temp_imports')
+                        ->directory('temp_import')
                         ->required(),
                 ])
                 ->action(function (array $data) {
-                    // 1. Cek apakah file berhasil masuk
-                    if (empty($data['zip_file'])) {
-                        Notification::make()->title('File gagal diunggah!')->danger()->send();
-                        return;
-                    }
+                    $zipPath = storage_path('app/' . $data['zip_file']);
+                    $zip = new \ZipArchive();
 
-                    // 2. Ambil jalur absolut file ZIP tersebut
-                    $filePath = $data['zip_file'];
-                    $fullPath = Storage::disk('local')->path($filePath);
-
-                    $zip = new \ZipArchive;
-                    $extractPath = storage_path('app/temp_import_' . time());
-
-                    // 3. Ekstrak ZIP
-                    if ($zip->open($fullPath) === TRUE) {
+                    if ($zip->open($zipPath) === TRUE) {
+                        $extractPath = storage_path('app/temp_import/ekstrak_' . time());
                         $zip->extractTo($extractPath);
                         $zip->close();
 
-                        // 4. Baca File JSON
-                        $jsonPath = $extractPath . '/database_modul.json';
-                        if (!File::exists($jsonPath)) {
-                            Notification::make()->title('Gagal: File database_modul.json tidak ditemukan di dalam ZIP!')->danger()->send();
-                            File::deleteDirectory($extractPath);
-                            Storage::disk('local')->delete($filePath);
-                            return;
-                        }
+                        $jsonFile = $extractPath . '/data_modul.json';
+                        
+                        if (File::exists($jsonFile)) {
+                            $moduleData = json_decode(File::get($jsonFile), true);
 
-                        $modulData = json_decode(File::get($jsonPath), true);
-
-                        // 5. Insert Data Modul Baru ke Database
-                        $newModule = Module::create([
-                            'title' => $modulData['title'] . ' (Imported)',
-                            'description' => $modulData['description'] ?? null,
-                            // Tambahkan field modul lainnya jika ada (seperti is_active)
-                        ]);
-
-                        // 6. Masukkan Aktivitas & Soal beserta metrik matriksnya
-                        foreach ($modulData['activities'] ?? [] as $actData) {
-                            $newActivity = $newModule->activities()->create([
-                                'title' => $actData['title'],
-                                'description' => $actData['description'],
-                                'assessment_metrics' => $actData['assessment_metrics'] ?? null,
-                                'image' => $actData['image'] ?? null,
+                            // 1. Buat Modul Utama
+                            $newModule = Module::create([
+                                'title' => $moduleData['title'] . ' (Import)',
+                                'description' => $moduleData['description'] ?? null,
+                                'access_pin' => $moduleData['access_pin'] ?? null,
+                                'is_adaptive' => $moduleData['is_adaptive'] ?? false,
+                                'is_active' => false, // Set Draft untuk keamanan
                             ]);
 
-                            foreach ($actData['questions'] ?? [] as $qData) {
-                                $newActivity->questions()->create([
-                                    'question_text' => $qData['question_text'],
-                                    'answer_format' => $qData['answer_format'],
-                                    'options' => $qData['options'] ?? null,
-                                    'correct_answer' => $qData['correct_answer'] ?? null,
-                                    'answer_explanation' => $qData['answer_explanation'] ?? null,
-                                    'image' => $qData['image'] ?? null,
-                                ]);
+                            // 2. Pindahkan folder 'files' dari dalam ZIP ke folder sistem asli
+                            if (File::isDirectory($extractPath . '/files')) {
+                                File::copyDirectory($extractPath . '/files', storage_path('app/'));
                             }
+
+                            // 3. Masukkan Aktivitas, Tahapan, dan Soal
+                            if (!empty($moduleData['activities'])) {
+                                foreach ($moduleData['activities'] as $actData) {
+                                    $newActivity = $newModule->activities()->create([
+                                        'title' => $actData['title'],
+                                        'assessment_metrics' => $actData['assessment_metrics'],
+                                        'stages' => is_array($actData['stages']) ? $actData['stages'] : json_decode($actData['stages'], true),
+                                    ]);
+
+                                    if (!empty($actData['questions'])) {
+                                        foreach ($actData['questions'] as $qData) {
+                                            $newActivity->questions()->create([
+                                                'answer_format' => $qData['answer_format'],
+                                                'layout_position' => $qData['layout_position'],
+                                                'difficulty' => $qData['difficulty'],
+                                                'question_text' => $qData['question_text'],
+                                                'image' => $qData['image'],
+                                                'sign_language_video' => $qData['sign_language_video'],
+                                                'correct_answer' => $qData['correct_answer'],
+                                                'true_false_answer' => $qData['true_false_answer'],
+                                                'correction_text' => $qData['correction_text'],
+                                                'answer_explanation' => $qData['answer_explanation'],
+                                                'options' => is_array($qData['options']) ? $qData['options'] : json_decode($qData['options'], true),
+                                            ]);
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Bersihkan file temporary
+                            File::deleteDirectory($extractPath);
+                            File::delete($zipPath);
+
+                            Notification::make()
+                                ->title('Modul Berhasil Diimpor!')
+                                ->body('Seluruh tahapan, soal, dan gambar berhasil dipulihkan.')
+                                ->success()
+                                ->send();
+
+                        } else {
+                            Notification::make()
+                                ->title('Import Gagal')
+                                ->body('File data_modul.json tidak ditemukan dalam file ZIP.')
+                                ->danger()
+                                ->send();
                         }
-
-                        // 7. Pindahkan file gambar dari folder ZIP ke Storage Public
-                        if (File::isDirectory($extractPath . '/images')) {
-                            File::copyDirectory($extractPath . '/images', storage_path('app/public'));
-                        }
-
-                        // 8. Bersihkan sampah file temp dan zip
-                        File::deleteDirectory($extractPath);
-                        Storage::disk('local')->delete($filePath);
-
-                        Notification::make()->title('Hore! Import Modul Berhasil! 🎉')->success()->send();
                     } else {
-                        Notification::make()->title('Gagal: File ZIP rusak atau tidak bisa dibaca.')->danger()->send();
-                        Storage::disk('local')->delete($filePath);
+                        Notification::make()
+                            ->title('Import Gagal')
+                            ->body('File ZIP rusak atau tidak bisa dibuka.')
+                            ->danger()
+                            ->send();
                     }
                 }),
-
-            Actions\CreateAction::make(),
         ];
     }
 }

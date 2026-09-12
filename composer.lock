@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "19c56be9b9277dfa8696aa95831a2c5d",
+    "content-hash": "758f97f43950b3a81bab63362c37061a",
     "packages": [
         {
             "name": "amidesfahani/filament-tinyeditor",
@@ -2204,78 +2204,6 @@
             "time": "2026-07-17T13:53:03+00:00"
         },
         {
-            "name": "inertiajs/inertia-laravel",
-            "version": "v2.0.25",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/inertiajs/inertia-laravel.git",
-                "reference": "d730017fb11670c46eafaa0e49e1ed387f3729f1"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/inertiajs/inertia-laravel/zipball/d730017fb11670c46eafaa0e49e1ed387f3729f1",
-                "reference": "d730017fb11670c46eafaa0e49e1ed387f3729f1",
-                "shasum": ""
-            },
-            "require": {
-                "ext-json": "*",
-                "laravel/framework": "^10.0|^11.0|^12.0|^13.0",
-                "php": "^8.1.0",
-                "symfony/console": "^6.2|^7.0|^8.0"
-            },
-            "conflict": {
-                "laravel/boost": "<2.5.0"
-            },
-            "require-dev": {
-                "guzzlehttp/guzzle": "^7.2",
-                "larastan/larastan": "^3.0",
-                "laravel/pint": "^1.16",
-                "mockery/mockery": "^1.3.3",
-                "orchestra/testbench": "^8.0|^9.2|^10.0|^11.0",
-                "phpunit/phpunit": "^10.4|^11.5|^12.0"
-            },
-            "suggest": {
-                "ext-pcntl": "Recommended when running the Inertia SSR server via the `inertia:start-ssr` artisan command."
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "Inertia\\ServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "files": [
-                    "./helpers.php"
-                ],
-                "psr-4": {
-                    "Inertia\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Jonathan Reinink",
-                    "email": "jonathan@reinink.ca",
-                    "homepage": "https://reinink.ca"
-                }
-            ],
-            "description": "The Laravel adapter for Inertia.js.",
-            "keywords": [
-                "inertia",
-                "laravel"
-            ],
-            "support": {
-                "issues": "https://github.com/inertiajs/inertia-laravel/issues",
-                "source": "https://github.com/inertiajs/inertia-laravel/tree/v2.0.25"
-            },
-            "time": "2026-08-04T21:57:45+00:00"
-        },
-        {
             "name": "intervention/image",
             "version": "2.7.2",
             "source": {
@@ -2434,6 +2362,72 @@
                 }
             ],
             "time": "2025-10-19T21:18:50+00:00"
+        },
+        {
+            "name": "kahusoftware/filament-ckeditor-field",
+            "version": "v1.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Kahu-Software-LLC/filament-ckeditor-field.git",
+                "reference": "9e591c99e0cea35e76d3781a3f5006157a40bdf8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Kahu-Software-LLC/filament-ckeditor-field/zipball/9e591c99e0cea35e76d3781a3f5006157a40bdf8",
+                "reference": "9e591c99e0cea35e76d3781a3f5006157a40bdf8",
+                "shasum": ""
+            },
+            "require": {
+                "ext-dom": "*",
+                "filament/forms": "^3.0",
+                "php": "^8.1",
+                "spatie/laravel-package-tools": "^1.15.0"
+            },
+            "require-dev": {
+                "nunomaduro/collision": "^7.11|^8.4",
+                "orchestra/testbench": "^10.0|^11.0",
+                "pestphp/pest": "^3.0|^4.0",
+                "pestphp/pest-plugin-arch": "^3.0|^4.0",
+                "pestphp/pest-plugin-laravel": "^3.0|^4.0",
+                "phpstan/phpstan": "^2.1"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Kahusoftware\\FilamentCkeditorField\\FilamentCkeditorFieldServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Kahusoftware\\FilamentCkeditorField\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Thomas Johnson",
+                    "email": "hello@kahusoftware.com",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A basic CKEditor 5 form field configured with non-premium features.",
+            "homepage": "https://github.com/kahu-software-llc/filament-ckeditor-field",
+            "keywords": [
+                "Kahu-Software-LLC",
+                "filament-ckeditor-field",
+                "kahusoftware",
+                "laravel"
+            ],
+            "support": {
+                "issues": "https://github.com/Kahu-Software-LLC/filament-ckeditor-field/discussions/categories/q-a",
+                "source": "https://github.com/Kahu-Software-LLC/filament-ckeditor-field"
+            },
+            "time": "2026-08-05T16:07:36+00:00"
         },
         {
             "name": "kirschbaum-development/eloquent-power-joins",

@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Module;
 use App\Models\StudentAnswer;
+use App\Models\Question; 
+use App\Models\ActivitySubmission;
+
 
 class StudentModuleController extends Controller
 {
@@ -79,35 +82,85 @@ class StudentModuleController extends Controller
             ->pluck('answer_value', 'question_id')
             ->toArray();
 
-        // 👇 TAMBAHKAN LOGIKA INI 👇
-        // E. CEK APAKAH MODUL SUDAH SELESAI
+        // E. CEK APAKAH MODUL SUDAH SELESAI (Anti-Bug AI Adaptif)
         $isCompleted = false;
-        $totalQuestions = $module->activities->flatMap->questions->count();
-        $answeredQuestions = count($existingAnswers);
         
-        // Jika jumlah jawaban murid sudah sama atau lebih dari total soal, berarti selesai!
-        if ($totalQuestions > 0 && $answeredQuestions >= $totalQuestions) {
-            $isCompleted = true;
+        // Cari aktivitas urutan paling terakhir di modul ini
+        $lastActivity = $module->activities->last();
+        
+        if ($lastActivity) {
+            // Modul selesai HANYA JIKA aktivitas terakhir sudah masuk ke meja guru (ActivitySubmission)
+            $isCompleted = \App\Models\ActivitySubmission::where('student_id', $studentId)
+                ->where('activity_id', $lastActivity->id)
+                ->exists();
         }
 
-        // Kirim $isCompleted ke Blade
         return view('student.module', compact('module', 'existingAnswers', 'tingkatMurid', 'isAdaptive', 'isCompleted'));
     }
 
-    // ==========================================
-    // 3. FUNGSI SIMPAN OTOMATIS (AJAX)
+   // ==========================================
+    // 3. FUNGSI SIMPAN OTOMATIS + AUTO GRADING + SUBMISSION GURU
     // ==========================================
     public function saveActivity(Request $request, $module_id)
     {
         $studentId = session('student_id'); 
+        $activityId = null; 
         
         if ($request->has('jawaban')) {
             foreach ($request->jawaban as $questionId => $answerValue) {
+                
+                $question = Question::find($questionId);
+                if (!$question) continue;
+
+                $activityId = $question->activity_id;
+                $isCorrect = null;
+                $score = null;
+
+                // A. KOREKSI OTOMATIS: HANYA JALAN JIKA TOMBOL FINAL DITEKAN
+                if ($request->is_final_submit == '1') {
+                    if (in_array($question->answer_format, ['multiple_choice', 'true_false'])) {
+                        $jawabanMuridBersih = trim(strtolower($answerValue));
+                        $kunciJawabanBersih = trim(strtolower($question->correct_answer));
+                        
+                        if ($jawabanMuridBersih === $kunciJawabanBersih) {
+                            $isCorrect = true;
+                            $score = 100;
+                        } else {
+                            $isCorrect = false;
+                            $score = 0;
+                        }
+                    }
+                }
+
+                // B. SIMPAN JAWABAN KE DATABASE
+                $dataJawaban = [
+                    'answer_value' => is_array($answerValue) ? json_encode($answerValue) : $answerValue,
+                ];
+
+                // Jika murid menekan tombol submit, barulah status Benar/Salah dikunci
+                if ($request->is_final_submit == '1') {
+                    $dataJawaban['is_correct'] = $isCorrect;
+                    $dataJawaban['score'] = $score;
+                }
+
                 StudentAnswer::updateOrCreate(
                     ['student_id' => $studentId, 'question_id' => $questionId],
-                    ['answer_value' => is_array($answerValue) ? json_encode($answerValue) : $answerValue]
+                    $dataJawaban
                 );
             }
+        }
+
+        // C. BUAT "MAP TUGAS": HANYA JIKA TOMBOL FINAL DITEKAN
+        if ($activityId && $request->is_final_submit == '1') {
+            ActivitySubmission::updateOrCreate(
+                [
+                    'student_id' => $studentId,
+                    'activity_id' => $activityId,
+                ],
+                [
+                    'status' => 'menunggu_koreksi', 
+                ]
+            );
         }
 
         return response()->json(['status' => 'success', 'message' => 'Tersimpan!']);
