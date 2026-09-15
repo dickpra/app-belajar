@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('access_pin', 6)->nullable();
             $table->boolean('is_active')->default(true);
             $table->boolean('is_adaptive')->default(false);
+            $table->boolean('is_instant_mode')->default(false);
             $table->timestamps();
         });
     }

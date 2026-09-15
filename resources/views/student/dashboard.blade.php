@@ -55,7 +55,8 @@
                 <div class="w-full flex justify-center transform {{ $translateClass }}">
                     
                     @if($isUnlocked)
-                        <button onclick="bukaModalPin({{ $module->id }}, '{{ $module->access_pin ? 'yes' : 'no' }}', '{{ addslashes($module->title) }}')" 
+                        <!-- 👇 Perhatikan tambahan tanda kutip tunggal (' ') dan fungsi acak_id() di parameter pertama 👇 -->
+                        <button onclick="bukaModalPin('{{ acak_id($module->id) }}', '{{ $module->access_pin ? 'yes' : 'no' }}', '{{ addslashes($module->title) }}')" 
                             class="group relative bg-white w-[260px] md:w-[320px] rounded-[2rem] border-4 
                             {{ $isCompleted ? 'border-green-400 shadow-[0_8px_0_#4ade80]' : ($isInProgress ? 'border-orange-400 shadow-[0_8px_0_#fb923c]' : 'border-blue-400 shadow-[0_8px_0_#60a5fa]') }} 
                             p-6 text-center bubbly-button hover:-translate-y-2">
@@ -157,7 +158,7 @@
     </div>
 
    @include('student.navbar-bawah')
-   
+
     <script>
         let currentModuleId = null;
 

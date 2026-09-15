@@ -43,6 +43,12 @@ class ModuleResource extends Resource
                         Forms\Components\Grid::make(1)->schema([
                             Forms\Components\Toggle::make('is_adaptive')
                                 ->label('🤖 Aktifkan Mode Pembelajaran Adaptif?'),
+
+                            // 👇 (TAMBAHKAN INI) Toggle Mode Duolingo
+                            Forms\Components\Toggle::make('is_instant_mode')
+                                ->label('⚡ Mode Latihan Instan (Ala Duolingo)')
+                                ->helperText('Murid mengerjakan 1 soal per halaman dengan cek jawaban instan tanpa campur tangan guru.')
+                                ->default(false),
                                 
                             Forms\Components\Toggle::make('is_active')
                                 ->default(true)

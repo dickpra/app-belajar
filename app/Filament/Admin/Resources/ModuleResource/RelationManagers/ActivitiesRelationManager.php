@@ -9,7 +9,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use AmidEsfahani\FilamentTinyEditor\TinyEditor;
 use Illuminate\Support\Str;
-use Illuminate\Support\HtmlString; // 👈 Pastikan ini di-import untuk merender HTML
+use Illuminate\Support\HtmlString;
 
 class ActivitiesRelationManager extends RelationManager
 {
@@ -102,13 +102,31 @@ class ActivitiesRelationManager extends RelationManager
                         ]),
 
                     // ==========================================
-                    // TAB 3: SOAL & KUNCI JAWABAN (DILENGKAPI PANDUAN)
+                    // TAB 3: SOAL & KUNCI JAWABAN
                     // ==========================================
                     Forms\Components\Tabs\Tab::make('3. Soal & Evaluasi')
                         ->icon('heroicon-o-pencil-square')
                         ->schema([
                             
-                            // 👇 BANNER PANDUAN AI UNTUK GURU 👇
+                            // 👇 BANNER KHUSUS MODE DUOLINGO (MUNCUL JIKA TOGGLE AKTIF) 👇
+                            Forms\Components\Section::make('⚡ MODE LATIHAN INSTAN AKTIF')
+                                ->schema([
+                                    Forms\Components\Placeholder::make('info_instan')
+                                        ->hiddenLabel()
+                                        ->content(new HtmlString('
+                                            <div style="color: #b45309; font-size: 0.95rem; font-weight: bold;">
+                                                Karena Anda mengaktifkan Mode Instan (Ala Duolingo) di pengaturan Modul:
+                                                <ul style="list-style-type: disc; margin-left: 1.5rem; margin-top: 0.5rem; color: #92400e;">
+                                                    <li>Tipe soal "Isian Rumpang" (Complex Fill) <strong>dikunci/dimatikan</strong> karena rentan dinilai salah oleh mesin jika ada typo.</li>
+                                                    <li>Kunci Jawaban <strong>WAJIB</strong> diisi agar mesin bisa memberikan nilai di tempat.</li>
+                                                </ul>
+                                            </div>
+                                        ')),
+                                ])
+                                ->visible(fn (RelationManager $livewire) => $livewire->getOwnerRecord()->is_instant_mode)
+                                ->extraAttributes(['style' => 'background-color: #fffbeb; border: 2px solid #f59e0b;']),
+                            
+                            // BANNER PANDUAN AI UNTUK GURU
                             Forms\Components\Section::make('🤖 Panduan Input Soal Adaptif (AI)')
                                 ->schema([
                                     Forms\Components\Placeholder::make('panduan_ai')
@@ -128,40 +146,26 @@ class ActivitiesRelationManager extends RelationManager
                                                         <span style="font-weight: 900; color: #2563eb;">2.</span>
                                                         <div><strong>Soal Wajib (Pasti Muncul):</strong> Jika ada soal krusial yang WAJIB dijawab semua murid tanpa kecuali, silakan buat soal tersebut, lalu <strong>duplikasikan menjadi 3 buah</strong>. Beri label Mudah pada duplikat pertama, Sedang pada duplikat kedua, dan Sulit pada duplikat ketiga.</div>
                                                     </li>
-                                                    <li style="display: flex; gap: 0.5rem;">
-                                                        <span style="font-weight: 900; color: #2563eb;">3.</span>
-                                                        <div><strong>Lengkapi Ketiganya:</strong> Jika Anda hanya membuat variasi "Mudah" dan "Sedang" namun murid yang masuk berstatus "Pintar", sistem akan menggunakan metode Fallback (penyelamat) untuk menurunkan paksa level soal. Sebisa mungkin sediakan 3 level secara utuh.</div>
-                                                    </li>
                                                 </ul>
                                             </div>
                                         ')),
-                                ])->collapsible()->collapsed(false),
-                            // 👆 ============================= 👆
+                                ])->collapsible()->collapsed(true),
 
                             Forms\Components\Repeater::make('questions')
                                 ->relationship('questions')
                                 ->label('Rentetan Soal (Ayo Berlatih)')
                                 ->schema([
                                     Forms\Components\Grid::make(3)->schema([
-                                        Forms\Components\Select::make('answer_format')
-                                            ->options([
-                                                'multiple_choice'       => 'Pilihan Ganda (Teks/Gambar)',
-                                                'number_input'          => 'Input Angka Tunggal',
-                                                'text_input'            => 'Input Teks Singkat',
-                                                'matching'              => 'Menjodohkan (Kiri & Kanan)',
-                                                'true_false_correction' => 'Benar/Salah + Teks Perbaikan',
-                                                'complex_fill'          => 'Isian Rumpang (Banyak Titik)',
-                                            ])->required()->live()->label('Tipe Jawaban'),
-
-                                        Forms\Components\Select::make('layout_position')
-                                            ->options([
-                                                'image_left'   => 'Gambar di Kiri',
-                                                'image_right'  => 'Gambar di Kanan',
-                                                'image_top'    => 'Gambar di Atas',
-                                                'image_bottom' => 'Gambar di Bawah',
-                                            ])->default('image_top')->required()->label('Posisi Gambar'),
                                         
-                                        // UBAH LABEL UNTUK MENEGASKAN
+                                        // 👇 KUNCI TIPE SOAL JIKA MODE INSTAN AKTIF 👇
+                                        Forms\Components\Select::make('answer_format')
+                                            ->options(config('soal.tipe')) 
+                                            ->disableOptionWhen(fn (string $value, RelationManager $livewire) => 
+                                                // Jika Instant Mode menyala, Disable Isian Rumpang!
+                                                $livewire->getOwnerRecord()->is_instant_mode && in_array($value, ['complex_fill'])
+                                            )
+                                            ->required()->live()->label('Tipe Jawaban'),
+                                        
                                         Forms\Components\Select::make('difficulty')
                                             ->options(['easy'=>'🌟 Mudah', 'medium'=>'⭐⭐ Sedang', 'hard'=>'🔥 Sulit (HOTS)'])
                                             ->default('medium')->required()->label('Tingkat Kesulitan AI (Wajib Set)'),
@@ -170,15 +174,6 @@ class ActivitiesRelationManager extends RelationManager
                                     Forms\Components\Section::make('Konten Pertanyaan')
                                         ->schema([
                                             Forms\Components\Grid::make(2)->schema([
-                                                Forms\Components\FileUpload::make('image')
-                                                    ->image()->optimize('webp')->imageEditor()
-                                                    ->disk('modul_rahasia')->visibility('private')
-                                                    ->directory(function (RelationManager $livewire, Forms\Get $get) {
-                                                        $modul = Str::slug($livewire->getOwnerRecord()->title ?? 'modul');
-                                                        $aktivitas = Str::slug($get('../../title') ?? 'aktivitas');
-                                                        return "modul_private/{$modul}/{$aktivitas}/soal_thumbnail";
-                                                    })->label('Gambar Utama Soal'),
-
                                                 Forms\Components\FileUpload::make('sign_language_video')
                                                     ->label('🤟 Video Isyarat Soal')
                                                     ->disk('modul_rahasia_video')->visibility('private')
@@ -205,11 +200,20 @@ class ActivitiesRelationManager extends RelationManager
                                     // KUNCI JAWABAN
                                     Forms\Components\Section::make('Kunci Jawaban & Pembahasan')
                                         ->schema([
+                                            
+                                            // 👇 LOGIKA REQUIRED DINAMIS 👇
                                             Forms\Components\TextInput::make('correct_answer')
                                                 ->label('Kunci Jawaban Pasti')
-                                                ->placeholder('Contoh: 25')
+                                                ->helperText(fn (RelationManager $livewire) => 
+                                                    $livewire->getOwnerRecord()->is_instant_mode 
+                                                    ? '⚠️ MODE INSTAN: Wajib diisi agar mesin bisa menilai!' 
+                                                    : 'Opsional (Hanya untuk referensi).'
+                                                )
                                                 ->visible(fn (Forms\Get $get) => in_array($get('answer_format'), ['number_input', 'text_input']))
-                                                ->required(fn (Forms\Get $get) => in_array($get('answer_format'), ['number_input', 'text_input'])),
+                                                // Jadikan Wajib (Required) jika menggunakan Tipe Input DAN Mode Instan menyala
+                                                ->required(fn (Forms\Get $get, RelationManager $livewire) => 
+                                                    $livewire->getOwnerRecord()->is_instant_mode && in_array($get('answer_format'), ['number_input', 'text_input'])
+                                                ),
 
                                             Forms\Components\Select::make('true_false_answer')
                                                 ->label('Kunci Jawaban yang Tepat')

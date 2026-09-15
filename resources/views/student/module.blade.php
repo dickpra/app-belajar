@@ -636,114 +636,118 @@
         // =========================================================
         // MESIN PENARIK GARIS SVG (BISA BOLAK BALIK: KIRI/KANAN BEBAS)
         // =========================================================
-        let aktifSisi = {}; // Menyimpan memori sisi mana yang diklik pertama
-
+        // ==========================================
+        // SIHIR TARIK GARIS & GUNTING GARIS (MATCHING)
+        // ==========================================
+        let aktifSisi = {};
+        
         function pilihKiri(btn, soalId) {
-            let aktif = aktifSisi[soalId];
-
-            if (!aktif || aktif.sisi === 'kiri') {
-                // 1. Pilih kotak Kiri (Birukan)
-                document.querySelectorAll(`.btn-kiri-${soalId}:not(.terjawab)`).forEach(el => {
-                    el.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
-                    el.querySelector('.konektor-kiri').classList.replace('bg-blue-500', 'bg-slate-200');
-                });
-                btn.classList.add('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
-                btn.querySelector('.konektor-kiri').classList.replace('bg-slate-200', 'bg-blue-500');
-                aktifSisi[soalId] = { sisi: 'kiri', btn: btn };
-            } else if (aktif.sisi === 'kanan') {
-                // 2. JODOH! (Tadi klik Kanan, sekarang klik Kiri)
-                eksekusiJodoh(btn, aktif.btn, soalId); 
-                aktifSisi[soalId] = null;
+            // 👇 FITUR BARU: BATALKAN JODOH JIKA KOTAK SUDAH HIJAU
+            if (btn.classList.contains('terjawab')) {
+                lepasJodoh(btn, 'kiri', soalId);
+                aktifSisi[soalId] = null; // Matikan seleksi aktif
+                return;
             }
+
+            let aktif = aktifSisi[soalId];
+            if (!aktif || aktif.sisi === 'kiri') {
+                document.querySelectorAll(`.btn-kiri-${soalId}:not(.terjawab)`).forEach(el => { el.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4'); el.querySelector('.konektor-kiri').classList.replace('bg-blue-500', 'bg-slate-200'); });
+                btn.classList.add('border-blue-500', 'bg-blue-50', 'ring-4'); btn.querySelector('.konektor-kiri').classList.replace('bg-slate-200', 'bg-blue-500');
+                aktifSisi[soalId] = { sisi: 'kiri', btn: btn };
+            } else if (aktif.sisi === 'kanan') { eksekusiJodoh(btn, aktif.btn, soalId); aktifSisi[soalId] = null; }
         }
 
         function pilihKanan(btn, soalId) {
-            let aktif = aktifSisi[soalId];
-
-            if (!aktif || aktif.sisi === 'kanan') {
-                // 1. Pilih kotak Kanan (Birukan)
-                document.querySelectorAll(`.btn-kanan-${soalId}:not(.terjawab)`).forEach(el => {
-                    el.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
-                    el.querySelector('.konektor-kanan').classList.replace('bg-blue-500', 'bg-slate-200');
-                });
-                btn.classList.add('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
-                btn.querySelector('.konektor-kanan').classList.replace('bg-slate-200', 'bg-blue-500');
-                aktifSisi[soalId] = { sisi: 'kanan', btn: btn };
-            } else if (aktif.sisi === 'kiri') {
-                // 2. JODOH! (Tadi klik Kiri, sekarang klik Kanan)
-                eksekusiJodoh(aktif.btn, btn, soalId);
-                aktifSisi[soalId] = null;
+            // 👇 FITUR BARU: BATALKAN JODOH JIKA KOTAK SUDAH HIJAU
+            if (btn.classList.contains('terjawab')) {
+                lepasJodoh(btn, 'kanan', soalId);
+                aktifSisi[soalId] = null; // Matikan seleksi aktif
+                return;
             }
+
+            let aktif = aktifSisi[soalId];
+            if (!aktif || aktif.sisi === 'kanan') {
+                document.querySelectorAll(`.btn-kanan-${soalId}:not(.terjawab)`).forEach(el => { el.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4'); el.querySelector('.konektor-kanan').classList.replace('bg-blue-500', 'bg-slate-200'); });
+                btn.classList.add('border-blue-500', 'bg-blue-50', 'ring-4'); btn.querySelector('.konektor-kanan').classList.replace('bg-slate-200', 'bg-blue-500');
+                aktifSisi[soalId] = { sisi: 'kanan', btn: btn };
+            } else if (aktif.sisi === 'kiri') { eksekusiJodoh(aktif.btn, btn, soalId); aktifSisi[soalId] = null; }
         }
 
         function eksekusiJodoh(btnKiri, btnKanan, soalId) {
-            // 1. Kunci kedua kotak menjadi warna Hijau (dan tambahkan class 'terjawab')
-            [btnKiri, btnKanan].forEach(btn => {
-                btn.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
-                btn.classList.add('border-green-500', 'bg-green-50', 'terjawab');
-            });
-
-            // 2. Warnai konektor jadi hijau
+            [btnKiri, btnKanan].forEach(btn => { btn.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4'); btn.classList.add('border-green-500', 'bg-green-50', 'terjawab'); });
             btnKiri.querySelector('.konektor-kiri').className = btnKiri.querySelector('.konektor-kiri').className.replace(/bg-(slate-200|blue-500)/g, 'bg-green-500');
             btnKanan.querySelector('.konektor-kanan').className = btnKanan.querySelector('.konektor-kanan').className.replace(/bg-(slate-200|blue-500)/g, 'bg-green-500');
 
-            // 3. Simpan Jawaban ke Database Format JSON
-            let hiddenContainer = document.getElementById(`hidden-inputs-${soalId}`);
             let hiddenInput = document.getElementById(`ans-${soalId}`);
             if(!hiddenInput) {
-                hiddenInput = document.createElement('input');
-                hiddenInput.type = 'hidden';
-                hiddenInput.id = `ans-${soalId}`;
-                hiddenInput.name = `jawaban[${soalId}]`;
-                hiddenInput.value = "{}";
-                hiddenContainer.appendChild(hiddenInput);
+                let container = document.getElementById(`hidden-inputs-${soalId}`);
+                hiddenInput = document.createElement('input'); hiddenInput.type = 'hidden'; hiddenInput.id = `ans-${soalId}`; hiddenInput.name = `jawaban[${soalId}]`; hiddenInput.value = "{}";
+                container.appendChild(hiddenInput);
             }
-            
-            let currentAns = JSON.parse(hiddenInput.value);
-            currentAns[btnKiri.dataset.nilai] = btnKanan.dataset.nilai; // Kiri selalu jadi kunci, Kanan jadi nilai
-            hiddenInput.value = JSON.stringify(currentAns);
-
-            // 4. Tarik Garis! (Pastikan fungsi ini dipanggil)
-            if(typeof gambarGarisSVG === 'function') {
-                gambarGarisSVG(btnKiri, btnKanan, soalId);
-            }
+            let currentAns = JSON.parse(hiddenInput.value); currentAns[btnKiri.dataset.nilai] = btnKanan.dataset.nilai; hiddenInput.value = JSON.stringify(currentAns);
+            gambarGarisSVG(btnKiri, btnKanan, soalId);
         }
 
         function gambarGarisSVG(elKiri, elKanan, soalId) {
-            let svg = document.getElementById(`svg-canvas-${soalId}`);
-            let container = document.getElementById(`match-wrap-${soalId}`);
-            
-            if (!svg || !container) return; // Pengaman anti-crash
-
-            // Bersihkan ID agar bisa dipakai membuat garis unik
-            let cleanId = elKiri.dataset.nilai.replace(/[^a-zA-Z0-9]/g, '');
-            let lineId = `line-${soalId}-${cleanId}`;
-            let line = document.getElementById(lineId);
-            
+            let svg = document.getElementById(`svg-canvas-${soalId}`); let container = document.getElementById(`match-wrap-${soalId}`);
+            if (!svg || !container) return;
+            let cleanId = elKiri.dataset.nilai.replace(/[^a-zA-Z0-9]/g, ''); let lineId = `line-${soalId}-${cleanId}`; let line = document.getElementById(lineId);
             if(!line) {
-                line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.id = lineId;
-                line.setAttribute('stroke', '#22c55e'); // Warna Hijau Tailwind
-                line.setAttribute('stroke-width', '6');
-                line.setAttribute('stroke-linecap', 'round');
-                line.style.strokeDasharray = "1000";
-                line.style.strokeDashoffset = "1000";
-                line.style.transition = "stroke-dashoffset 0.5s ease-out";
-                svg.appendChild(line);
+                line = document.createElementNS('http://www.w3.org/2000/svg', 'line'); line.id = lineId; line.setAttribute('stroke', '#22c55e'); line.setAttribute('stroke-width', '6'); line.setAttribute('stroke-linecap', 'round'); line.style.strokeDasharray = "1000"; line.style.strokeDashoffset = "1000"; line.style.transition = "stroke-dashoffset 0.5s ease-out"; svg.appendChild(line);
+            }
+            let rectContainer = container.getBoundingClientRect(); let rectKiri = elKiri.querySelector('.konektor-kiri').getBoundingClientRect(); let rectKanan = elKanan.querySelector('.konektor-kanan').getBoundingClientRect();
+            line.setAttribute('x1', rectKiri.left + (rectKiri.width/2) - rectContainer.left); line.setAttribute('y1', rectKiri.top + (rectKiri.height/2) - rectContainer.top); line.setAttribute('x2', rectKanan.left + (rectKanan.width/2) - rectContainer.left); line.setAttribute('y2', rectKanan.top + (rectKanan.height/2) - rectContainer.top);
+            setTimeout(() => { line.style.strokeDashoffset = "0"; }, 10);
+        }
+
+        // 👇 FUNGSI BARU: SIHIR GUNTING GARIS 👇
+        function lepasJodoh(btn, sisi, soalId) {
+            let hiddenInput = document.getElementById(`ans-${soalId}`);
+            if (!hiddenInput) return;
+
+            let currentAns = JSON.parse(hiddenInput.value || "{}");
+            let nilaiKlik = btn.dataset.nilai;
+            let nilaiKiri = null;
+            let nilaiKanan = null;
+
+            // 1. Cari tahu siapa pasangannya
+            if (sisi === 'kiri') {
+                nilaiKiri = nilaiKlik;
+                nilaiKanan = currentAns[nilaiKiri];
+            } else {
+                nilaiKanan = nilaiKlik;
+                for (let key in currentAns) {
+                    if (currentAns[key] === nilaiKanan) {
+                        nilaiKiri = key;
+                        break;
+                    }
+                }
             }
 
-            let rectContainer = container.getBoundingClientRect();
-            let rectKiri = elKiri.querySelector('.konektor-kiri').getBoundingClientRect();
-            let rectKanan = elKanan.querySelector('.konektor-kanan').getBoundingClientRect();
+            if (nilaiKiri && nilaiKanan) {
+                // 2. Hapus memori dari JSON Input
+                delete currentAns[nilaiKiri];
+                hiddenInput.value = JSON.stringify(currentAns);
 
-            // Kalkulasi titik tengah konektor
-            line.setAttribute('x1', rectKiri.left + (rectKiri.width/2) - rectContainer.left);
-            line.setAttribute('y1', rectKiri.top + (rectKiri.height/2) - rectContainer.top);
-            line.setAttribute('x2', rectKanan.left + (rectKanan.width/2) - rectContainer.left);
-            line.setAttribute('y2', rectKanan.top + (rectKanan.height/2) - rectContainer.top);
+                // 3. Hapus Garis SVG
+                let cleanId = nilaiKiri.replace(/[^a-zA-Z0-9]/g, '');
+                let lineId = `line-${soalId}-${cleanId}`;
+                let line = document.getElementById(lineId);
+                if (line) line.remove();
 
-            // Animasi garis muncul
-            setTimeout(() => { line.style.strokeDashoffset = "0"; }, 10);
+                // 4. Kembalikan warna kotak ke abu-abu (Default)
+                let btnKiri = document.querySelector(`.btn-kiri-${soalId}[data-nilai="${nilaiKiri}"]`);
+                let btnKanan = document.querySelector(`.btn-kanan-${soalId}[data-nilai="${nilaiKanan}"]`);
+
+                if (btnKiri) {
+                    btnKiri.classList.remove('border-green-500', 'bg-green-50', 'terjawab');
+                    btnKiri.querySelector('.konektor-kiri').className = btnKiri.querySelector('.konektor-kiri').className.replace('bg-green-500', 'bg-slate-200');
+                }
+                if (btnKanan) {
+                    btnKanan.classList.remove('border-green-500', 'bg-green-50', 'terjawab');
+                    btnKanan.querySelector('.konektor-kanan').className = btnKanan.querySelector('.konektor-kanan').className.replace('bg-green-500', 'bg-slate-200');
+                }
+            }
         }
 
         // ==========================================
@@ -951,7 +955,7 @@
                 }
             })
             .catch(error => {
-                alert("Gagal mengirim tugas. Cek koneksi internetmu ya!");
+                showWarningToast("Gagal mengirim tugas. Cek koneksi internetmu ya!");
                 btn.innerHTML = originalText; btn.disabled = false;
                 isSubmitting = false;
             });
