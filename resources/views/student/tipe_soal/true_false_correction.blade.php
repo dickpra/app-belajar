@@ -3,19 +3,59 @@
     $pilihan = is_array($ansData) ? ($ansData['pilihan'] ?? '') : (is_string($ansData) ? $ansData : '');
     $perbaikan = is_array($ansData) ? ($ansData['perbaikan'] ?? '') : '';
 @endphp
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <input type="radio" name="jawaban[{{ $question->id }}][pilihan]" id="benar-{{ $question->id }}" value="Benar" class="peer/benar sr-only" required {{ $pilihan === 'Benar' ? 'checked' : '' }} {{ $isCompleted ? 'disabled' : '' }}>
-    <label for="benar-{{ $question->id }}" class="h-full flex flex-col items-center justify-center gap-3 p-4 bg-white border-[3px] border-slate-200 rounded-2xl cursor-pointer transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:-translate-y-1 peer-checked/benar:border-blue-500 peer-checked/benar:bg-blue-100 peer-checked/benar:shadow-[0_4px_0_#3b82f6] peer-checked/benar:-translate-y-1 peer-disabled/benar:opacity-75 peer-disabled/benar:cursor-not-allowed">
-        <span class="text-xl font-black text-slate-600 peer-checked/benar:text-blue-800">✅ BENAR</span>
-    </label>
 
-    <input type="radio" name="jawaban[{{ $question->id }}][pilihan]" id="salah-{{ $question->id }}" value="Salah" class="peer/salah sr-only" required {{ $pilihan === 'Salah' ? 'checked' : '' }} {{ $isCompleted ? 'disabled' : '' }}>
-    <label for="salah-{{ $question->id }}" class="h-full flex flex-col items-center justify-center gap-3 p-4 bg-white border-[3px] border-slate-200 rounded-2xl cursor-pointer transition-all duration-200 hover:border-red-300 hover:bg-red-50 hover:-translate-y-1 peer-checked/salah:border-red-500 peer-checked/salah:bg-red-100 peer-checked/salah:shadow-[0_4px_0_#ef4444] peer-checked/salah:-translate-y-1 peer-disabled/salah:opacity-75 peer-disabled/salah:cursor-not-allowed">
-        <span class="text-xl font-black text-slate-600 peer-checked/salah:text-red-800">❌ SALAH</span>
-    </label>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+    <!-- Input tersembunyi yang menyimpan nilai pilihan -->
+    <input type="hidden" id="tf-val-{{ $question->id }}" name="jawaban[{{ $question->id }}][pilihan]" value="{{ $pilihan }}">
 
-    <div class="col-span-1 md:col-span-2 hidden peer-checked/salah:block mt-2 bg-red-50 p-5 rounded-2xl border-[3px] border-red-200 shadow-inner">
+    <!-- Tombol Benar -->
+    <button type="button" 
+        onclick="pilihOpsiTF({{ $question->id }}, 'Benar')"
+        id="btn-tf-benar-{{ $question->id }}"
+        class="w-full flex items-center justify-center p-5 rounded-2xl border-4 transition-all duration-150 font-black text-xl cursor-pointer {{ $pilihan === 'Benar' ? 'bg-blue-100 border-blue-500 text-blue-800 shadow-[0_5px_0_#3b82f6] -translate-y-1' : 'bg-white border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-300' }}">
+        <span>✅ BENAR</span>
+    </button>
+
+    <!-- Tombol Salah -->
+    <button type="button" 
+        onclick="pilihOpsiTF({{ $question->id }}, 'Salah')"
+        id="btn-tf-salah-{{ $question->id }}"
+        class="w-full flex items-center justify-center p-5 rounded-2xl border-4 transition-all duration-150 font-black text-xl cursor-pointer {{ $pilihan === 'Salah' ? 'bg-red-100 border-red-500 text-red-800 shadow-[0_5px_0_#ef4444] -translate-y-1' : 'bg-white border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-300' }}">
+        <span>❌ SALAH</span>
+    </button>
+
+    <!-- Kotak Input Perbaikan (Muncul saat memilih Salah) -->
+    <div id="perbaikan-box-{{ $question->id }}" class="col-span-1 md:col-span-2 {{ $pilihan === 'Salah' ? 'block' : 'hidden' }} mt-2 bg-red-50 p-5 rounded-2xl border-4 border-red-200">
         <label class="block text-sm font-black text-red-700 mb-2">Tuliskan Perbaikannya:</label>
-        <input type="text" name="jawaban[{{ $question->id }}][perbaikan]" value="{{ htmlspecialchars($perbaikan) }}" {{ $isCompleted ? 'disabled' : '' }} placeholder="Ketik jawaban yang benar di sini..." class="w-full px-4 py-3 font-bold text-lg text-slate-700 bg-white border-[3px] border-slate-200 rounded-xl focus:border-red-500 focus:bg-red-50 outline-none transition-colors">
+        <input type="text" 
+            name="jawaban[{{ $question->id }}][perbaikan]" 
+            value="{{ htmlspecialchars($perbaikan) }}" 
+            placeholder="Ketik jawaban yang benar di sini..." 
+            class="w-full px-4 py-3 font-bold text-lg text-slate-700 bg-white border-2 border-slate-300 rounded-xl focus:border-red-500 outline-none">
     </div>
 </div>
+
+<script>
+    if (typeof pilihOpsiTF !== 'function') {
+        window.pilihOpsiTF = function(id, val) {
+            const hiddenInput = document.getElementById('tf-val-' + id);
+            if (hiddenInput) hiddenInput.value = val;
+
+            const btnBenar = document.getElementById('btn-tf-benar-' + id);
+            const btnSalah = document.getElementById('btn-tf-salah-' + id);
+            const box = document.getElementById('perbaikan-box-' + id);
+
+            // Reset tampilan tombol
+            btnBenar.className = "w-full flex items-center justify-center p-5 rounded-2xl border-4 transition-all duration-150 font-black text-xl cursor-pointer bg-white border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-300";
+            btnSalah.className = "w-full flex items-center justify-center p-5 rounded-2xl border-4 transition-all duration-150 font-black text-xl cursor-pointer bg-white border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-300";
+
+            if (val === 'Benar') {
+                btnBenar.className = "w-full flex items-center justify-center p-5 rounded-2xl border-4 transition-all duration-150 font-black text-xl cursor-pointer bg-blue-100 border-blue-500 text-blue-800 shadow-[0_5px_0_#3b82f6] -translate-y-1";
+                if (box) box.classList.add('hidden');
+            } else if (val === 'Salah') {
+                btnSalah.className = "w-full flex items-center justify-center p-5 rounded-2xl border-4 transition-all duration-150 font-black text-xl cursor-pointer bg-red-100 border-red-500 text-red-800 shadow-[0_5px_0_#ef4444] -translate-y-1";
+                if (box) box.classList.remove('hidden');
+            }
+        };
+    }
+</script>

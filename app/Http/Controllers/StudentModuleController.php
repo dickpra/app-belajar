@@ -8,7 +8,6 @@ use App\Models\StudentAnswer;
 use App\Models\Question; 
 use App\Models\ActivitySubmission;
 
-
 class StudentModuleController extends Controller
 {
     // ==========================================
@@ -16,13 +15,11 @@ class StudentModuleController extends Controller
     // ==========================================
     public function verifyPin(Request $request, $id)
     {
+        // ID sudah berupa angka asli berkat Route::bind di web.php!
         $module = Module::findOrFail($id);
         
-        // Jika modul tidak punya PIN, langsung berikan akses
         if (!$module->access_pin || $module->access_pin === $request->pin) {
-            // Simpan 'kunci' akses di session selama browser terbuka
             session(["module_access_{$id}" => true]);
-            
             return response()->json(['status' => 'success']);
         }
 
@@ -34,19 +31,47 @@ class StudentModuleController extends Controller
     // ==========================================
     public function show($id)
     {
-        $studentId = session('student_id');
+        $studentId = session('student_id') ?? auth()->id();
+        
+        // ID sudah berupa angka asli berkat Route::bind di web.php!
         $module = Module::findOrFail($id);
+
+        // ==============================================================
+        // 🛑 SATPAM 1: CEK STATUS AKTIF
+        // ==============================================================
+        if (isset($module->is_active) && !$module->is_active) {
+            return redirect()->route('student.dashboard')->with('error', 'Maaf, Modul ini belum diaktifkan oleh Pak/Bu Guru.');
+        }
+
+        // ==============================================================
+        // 🛑 SATPAM 2: ANTI LOMPAT MODUL (HARUS BERURUTAN)
+        // ==============================================================
+        $modulSebelumnya = Module::where('sort_order', '<', $module->sort_order)
+                            ->where('is_active', true)
+                            ->orderBy('sort_order', 'desc')
+                            ->first();
+        
+        if ($modulSebelumnya) {
+            $sudahSelesai = ActivitySubmission::where('student_id', $studentId)
+                                ->whereHas('activity', function($q) use ($modulSebelumnya) {
+                                    $q->where('module_id', $modulSebelumnya->id);
+                                })
+                                ->exists();
+            
+            if (!$sudahSelesai) {
+                return redirect()->route('student.dashboard')->with('error', 'Ups! Kamu harus menyelesaikan modul sebelumnya terlebih dahulu ya! 🔒');
+            }
+        }
 
         // A. KUNCI KEAMANAN PIN
         if (!empty($module->access_pin) && !session()->has("module_access_{$id}")) {
             return redirect()->route('student.dashboard')->with('error', 'Kamu harus memasukkan PIN modul dulu ya!');
         }
 
-        // B. MESIN AI ADAPTIF (PENENTU LEVEL MURID)
+        // B. MESIN AI ADAPTIF
         $isAdaptive = $module->is_adaptive;
-        $tingkatMurid = 'easy'; // Level default
+        $tingkatMurid = 'easy'; 
 
-        // 👇 PERBAIKAN BUG: CEK APAKAH MURID SUDAH PUNYA JAWABAN DI MODUL INI
         $aktivitasIds = $module->activities()->pluck('id');
         $jawabanTerdahulu = StudentAnswer::where('student_id', $studentId)
             ->whereHas('question', function($q) use ($aktivitasIds) {
@@ -54,19 +79,14 @@ class StudentModuleController extends Controller
             })->first();
 
         if ($jawabanTerdahulu) {
-            // 🔒 KUNCI LEVEL AI: Gunakan level soal yang sudah telanjur dia kerjakan
             $tingkatMurid = $jawabanTerdahulu->question->difficulty ?? 'easy';
         } else {
-            // 🤖 JIKA BARU MULAI: Biarkan AI memprediksi kemampuan murid
             if ($isAdaptive) {
                 $totalJawaban = StudentAnswer::where('student_id', $studentId)->count();
-                $totalBenar = StudentAnswer::where('student_id', $studentId)
-                                             ->where('is_correct', true)
-                                             ->count();
+                $totalBenar = StudentAnswer::where('student_id', $studentId)->where('is_correct', true)->count();
 
                 if ($totalJawaban > 0) {
                     $persentase = ($totalBenar / $totalJawaban) * 100;
-                    
                     if ($persentase > 75) {
                         $tingkatMurid = 'hard';
                     } elseif ($persentase >= 50) {
@@ -76,26 +96,18 @@ class StudentModuleController extends Controller
             }
         }
 
-        // C. MUAT RELASI AKTIVITAS & SOAL (DENGAN SISTEM PENYELAMAT / FALLBACK)
+        // C. MUAT RELASI AKTIVITAS & SOAL
         $module->load('activities.questions');
 
         if ($isAdaptive) {
             foreach ($module->activities as $activity) {
                 $soalFilter = $activity->questions->where('difficulty', $tingkatMurid);
 
-                // Jika admin lupa bikin soal untuk level tersebut, aktifkan parasut penyelamat!
                 if ($soalFilter->isEmpty()) {
                     $soalFilter = $activity->questions->where('difficulty', 'medium');
-                    
-                    if ($soalFilter->isEmpty()) {
-                        $soalFilter = $activity->questions->where('difficulty', 'easy');
-                    }
-                    
-                    if ($soalFilter->isEmpty()) {
-                        $soalFilter = $activity->questions;
-                    }
+                    if ($soalFilter->isEmpty()) $soalFilter = $activity->questions->where('difficulty', 'easy');
+                    if ($soalFilter->isEmpty()) $soalFilter = $activity->questions;
                 }
-
                 $activity->setRelation('questions', $soalFilter->values());
             }
         }
@@ -111,41 +123,32 @@ class StudentModuleController extends Controller
         $lastActivity = $module->activities->last();
         
         if ($lastActivity) {
-            $isCompleted = \App\Models\ActivitySubmission::where('student_id', $studentId)
+            $isCompleted = ActivitySubmission::where('student_id', $studentId)
                 ->where('activity_id', $lastActivity->id)
                 ->exists();
         }
 
         // 👇 PENGATUR LALU LINTAS HALAMAN 👇
         if ($module->is_instant_mode) {
-            
-            // 🌟 IDE BRILIAN: Jika sudah selesai, kembalikan ke tampilan LKS (Mode Ulasan) agar bisa dibaca-baca!
             if ($isCompleted) {
                 return view('student.module', compact('module', 'existingAnswers', 'tingkatMurid', 'isAdaptive', 'isCompleted'));
             }
-
-            // Jika belum selesai, masuk ke arena bermain Duolingo!
             return view('student.module-instant', compact('module', 'existingAnswers', 'tingkatMurid', 'isAdaptive', 'isCompleted'));
         }
 
-        // Jika modul ini adalah mode ujian biasa (sejak awal), arahkan ke file blade lama
-        return view('student.module', compact('module', 'existingAnswers', 'tingkatMurid', 'isAdaptive', 'isCompleted'));
-
-        // Jika mode ujian biasa, arahkan ke file blade lama
         return view('student.module', compact('module', 'existingAnswers', 'tingkatMurid', 'isAdaptive', 'isCompleted'));
     }
 
    // ==========================================
-    // 3. FUNGSI SIMPAN OTOMATIS + AUTO GRADING + SUBMISSION GURU
+    // 3. FUNGSI SIMPAN OTOMATIS
     // ==========================================
     public function saveActivity(Request $request, $module_id)
     {
-        $studentId = session('student_id'); 
+        $studentId = session('student_id') ?? auth()->id(); 
         $activityId = null; 
         
         if ($request->has('jawaban')) {
             foreach ($request->jawaban as $questionId => $answerValue) {
-                
                 $question = Question::find($questionId);
                 if (!$question) continue;
 
@@ -153,23 +156,18 @@ class StudentModuleController extends Controller
                 $isCorrect = null;
                 $score = null;
 
-                // A. KOREKSI OTOMATIS: HANYA JALAN JIKA TOMBOL FINAL DITEKAN
                 if ($request->is_final_submit == '1') {
-                    // Panggil Service AutoGrader Sentral
                     $skorHitung = \App\Services\AutoGrader::periksaSkor($question->answer_format, $answerValue, $question);
-                    
                     if ($skorHitung !== null) {
                         $isCorrect = ($skorHitung == 100) ? true : false;
                         $score = $skorHitung;
                     }
                 }
 
-                // B. SIMPAN JAWABAN KE DATABASE
                 $dataJawaban = [
                     'answer_value' => is_array($answerValue) ? json_encode($answerValue) : $answerValue,
                 ];
 
-                // Jika murid menekan tombol submit, barulah status Benar/Salah dikunci
                 if ($request->is_final_submit == '1') {
                     $dataJawaban['is_correct'] = $isCorrect;
                     $dataJawaban['score'] = $score;
@@ -182,16 +180,10 @@ class StudentModuleController extends Controller
             }
         }
 
-        // C. BUAT "MAP TUGAS": HANYA JIKA TOMBOL FINAL DITEKAN
         if ($activityId && $request->is_final_submit == '1') {
             ActivitySubmission::updateOrCreate(
-                [
-                    'student_id' => $studentId,
-                    'activity_id' => $activityId,
-                ],
-                [
-                    'status' => 'menunggu_koreksi', 
-                ]
+                ['student_id' => $studentId, 'activity_id' => $activityId],
+                ['status' => 'menunggu_koreksi']
             );
         }
 
@@ -199,7 +191,7 @@ class StudentModuleController extends Controller
     }
 
     // ==========================================
-    // 4. API UNTUK MODE DUOLINGO (CEK INSTAN)
+    // 4. API UNTUK MODE DUOLINGO (CEK INSTAN - AMAN ERROR)
     // ==========================================
     public function cekJawabanInstan(Request $request)
     {
@@ -210,17 +202,50 @@ class StudentModuleController extends Controller
         $question = \App\Models\Question::find($questionId);
         
         if (!$question) {
-            return response()->json(['status' => 'error', 'message' => 'Soal tidak ditemukan!']);
+            return response()->json(['status' => 'error', 'message' => 'Soal tidak ditemukan!'], 404);
         }
 
-        // 1. Panggil Otak AI (AutoGrader) kita!
-        $skor = \App\Services\AutoGrader::periksaSkor($question->answer_format, $jawabanMurid, $question);
-        $kunciJawaban = \App\Services\AutoGrader::getKunciJawaban($question->answer_format, $question);
+        $isCorrect = false;
+        $kunciJawaban = '';
+        $skor = 0;
 
-        // 2. Tentukan status Benar/Salah
-        $isCorrect = ($skor === 100);
+        // A. Penanganan Khusus Tipe Benar / Salah (True False Correction)
+        if ($question->answer_format === 'true_false_correction') {
+            $pilihanMurid = is_array($jawabanMurid) ? ($jawabanMurid['pilihan'] ?? '') : $jawabanMurid;
+            $perbaikanMurid = is_array($jawabanMurid) ? trim($jawabanMurid['perbaikan'] ?? '') : '';
 
-        // 3. Simpan langsung ke database secara diam-diam (Background Save)
+            $kunciPilihan = $question->true_false_answer; // 'Benar' atau 'Salah'
+            $kunciPerbaikan = trim($question->correction_text ?? '');
+
+            if ($kunciPilihan === 'Benar') {
+                $isCorrect = (strtolower($pilihanMurid) === 'benar');
+                $kunciJawaban = 'Pernyataan BENAR';
+            } else {
+                $pilihanBenar = (strtolower($pilihanMurid) === 'salah');
+                // Jika guru mengisi teks perbaikan, cocokkan perbaikannya
+                $perbaikanBenar = empty($kunciPerbaikan) || (strcasecmp($perbaikanMurid, $kunciPerbaikan) === 0);
+                $isCorrect = $pilihanBenar && $perbaikanBenar;
+                $kunciJawaban = 'Pernyataan SALAH' . ($kunciPerbaikan ? " (Perbaikan: {$kunciPerbaikan})" : '');
+            }
+            $skor = $isCorrect ? 100 : 0;
+        } else {
+            // B. Tipe Soal Lainnya (Dilindungi Try-Catch agar tidak menimbulkan 500 error)
+            try {
+                $skor = \App\Services\AutoGrader::periksaSkor($question->answer_format, $jawabanMurid, $question);
+                $isCorrect = ($skor === 100);
+            } catch (\Throwable $e) {
+                $skor = 0;
+                $isCorrect = false;
+            }
+
+            try {
+                $kunciJawaban = \App\Services\AutoGrader::getKunciJawaban($question->answer_format, $question);
+            } catch (\Throwable $e) {
+                $kunciJawaban = $question->correct_answer ?? 'Perhatikan kembali materi.';
+            }
+        }
+
+        // Simpan jawaban siswa ke database
         \App\Models\StudentAnswer::updateOrCreate(
             ['student_id' => $studentId, 'question_id' => $question->id],
             [
@@ -230,7 +255,6 @@ class StudentModuleController extends Controller
             ]
         );
 
-        // 4. Kembalikan respons ke Javascript (Frontend)
         return response()->json([
             'status' => 'success',
             'is_correct' => $isCorrect,
@@ -239,23 +263,20 @@ class StudentModuleController extends Controller
         ]);
     }
     
-
     // ==========================================
     // 5. API UNTUK MENYELESAIKAN MODE DUOLINGO
     // ==========================================
     public function selesaiInstan($id)
     {
         $studentId = session('student_id') ?? auth()->id();
-        $module = \App\Models\Module::with('activities.questions')->findOrFail($id);
+        
+        // ID sudah berupa angka asli berkat Route::bind di web.php!
+        $module = Module::with('activities.questions')->findOrFail($id);
 
         foreach ($module->activities as $activity) {
-            // Kita buatkan "Stempel Pengumpulan" untuk setiap aktivitas di modul ini
-            \App\Models\ActivitySubmission::updateOrCreate(
+            ActivitySubmission::updateOrCreate(
                 ['student_id' => $studentId, 'activity_id' => $activity->id],
-                [
-                    // Beri status menunggu koreksi agar guru tetap bisa mengecek di Buku Penilaian
-                    'status' => 'menunggu_koreksi', 
-                ]
+                ['status' => 'menunggu_koreksi']
             );
         }
 

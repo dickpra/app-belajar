@@ -217,7 +217,7 @@ class ActivitiesRelationManager extends RelationManager
                                         
                                         Forms\Components\Select::make('difficulty')
                                             ->options(['easy'=>'🌟 Mudah', 'medium'=>'⭐⭐ Sedang', 'hard'=>'🔥 Sulit (HOTS)'])
-                                            ->default('medium')->required()->label('Tingkat Kesulitan AI (Wajib Set)'),
+                                            ->default('easy')->required()->label('Tingkat Kesulitan AI (Wajib Set)'),
                                     ]),
 
                                     Forms\Components\Section::make('Konten Pertanyaan')

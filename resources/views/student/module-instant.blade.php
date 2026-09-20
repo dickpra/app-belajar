@@ -394,13 +394,25 @@
             const form = document.getElementById('instant-form');
             const formData = new FormData(form);
             
+            // 1. Ambil format jawaban standar (radio single, input angka, teks, matching)
             let jawabanTarget = formData.get(`jawaban[${currentSlide.id}]`);
+            
+            // 2. Ambil format array (isian rumpang)
             if (!jawabanTarget && formData.has(`jawaban[${currentSlide.id}][]`)) {
                 jawabanTarget = formData.getAll(`jawaban[${currentSlide.id}][]`).join(' | ');
             }
 
-            if (!jawabanTarget || jawabanTarget === '{}') {
-                showToast("Ayo, isi jawabanmu dulu ya! 🤓");
+            // 3. Ambil format objek (Benar/Salah)
+            if (!jawabanTarget && formData.has(`jawaban[${currentSlide.id}][pilihan]`)) {
+                let pilihan = formData.get(`jawaban[${currentSlide.id}][pilihan]`);
+                let perbaikan = formData.get(`jawaban[${currentSlide.id}][perbaikan]`) || '';
+                if (pilihan) {
+                    jawabanTarget = { pilihan: pilihan, perbaikan: perbaikan };
+                }
+            }
+
+            if (!jawabanTarget || jawabanTarget === '{}' || jawabanTarget === '') {
+                showToast("Ayo, isi atau pilih jawabanmu dulu ya! 🤓");
                 return;
             }
 
@@ -410,12 +422,27 @@
 
             fetch("{{ route('student.module.cek-instan') }}", {
                 method: 'POST',
-                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Content-Type': 'application/json' },
+                headers: { 
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify({ question_id: currentSlide.id, jawaban: jawabanTarget })
             })
-            .then(res => res.json())
+            .then(async res => {
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({ message: 'Kesalahan server status ' + res.status }));
+                    throw new Error(errData.message || 'Gagal memproses jawaban.');
+                }
+                return res.json();
+            })
             .then(data => tampilkanHasil(data))
-            .catch(() => { showToast("Ups, Koneksi terputus."); btn.innerHTML = 'Coba Lagi'; btn.disabled = false; });
+            .catch(err => { 
+                console.error('Detail Error:', err);
+                showToast(err.message || "Ups, Koneksi terputus."); 
+                btn.innerHTML = 'Coba Lagi 🔍'; 
+                btn.disabled = false; 
+            });
         }
 
         function tampilkanHasil(data) {
