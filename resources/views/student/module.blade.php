@@ -368,11 +368,13 @@
                                     </a>
                                 @else
                                     @if($aIndex < count($module->activities) - 1)
-                                        <button type="button" onclick="simpanDanLanjut({{ $aIndex }}, {{ $module->id }})" class="w-full md:w-auto md:float-right bg-green-500 hover:bg-green-400 text-white font-black text-xl py-3.5 px-8 rounded-full shadow-[0_5px_0_#16a34a] active:shadow-none active:translate-y-[5px] transition-all border-[3px] border-white">
+                                        <!-- 👇 TAMBAHKAN type="button" DI SINI 👇 -->
+                                        <button type="button" onclick="simpanDanLanjut({{ $index }}, '{{ acak_id($module->id) }}')" class="w-full md:w-auto md:float-right bg-green-500 hover:bg-green-400 text-white font-black text-xl py-3.5 px-8 rounded-full shadow-[0_5px_0_#16a34a] active:shadow-none active:translate-y-[5px] transition-all border-[3px] border-white">
                                             Simpan Jawaban ➔
                                         </button>
                                     @else
-                                        <button type="button" onclick="simpanDanSelesai({{ $aIndex }}, {{ $module->id }})" class="w-full bg-orange-500 hover:bg-orange-400 text-white font-black text-xl py-3.5 rounded-full shadow-[0_5px_0_#ea580c] active:shadow-none active:translate-y-[5px] transition-all border-[3px] border-white bubbly-button">
+                                        <!-- 👇 TAMBAHKAN type="button" DI SINI 👇 -->
+                                        <button type="button" onclick="simpanDanSelesai({{ $index }}, '{{ acak_id($module->id) }}')" class="w-full bg-orange-500 hover:bg-orange-400 text-white font-black text-xl py-3.5 rounded-full shadow-[0_5px_0_#ea580c] active:shadow-none active:translate-y-[5px] transition-all border-[3px] border-white bubbly-button">
                                             ✨ Kumpulkan Tugas! ✨
                                         </button>
                                     @endif

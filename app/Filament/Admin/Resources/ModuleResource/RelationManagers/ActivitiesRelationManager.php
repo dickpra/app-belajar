@@ -16,6 +16,29 @@ class ActivitiesRelationManager extends RelationManager
     protected static string $relationship = 'activities';
     protected static ?string $title = 'Manajemen Aktivitas & Evaluasi';
 
+    // 👇 MESIN PEMBERSIH UTAMA (Dipanggil oleh semua Satpam di bawah) 👇
+    protected static function cleanTrixHTML(?string $html): ?string
+    {
+        if (!$html) return $html;
+
+        // 1. JURUS PAMUNGKAS (NUKE):
+        // Cari tag <figcaption> yang di dalamnya mengandung 'attachment__name' atau 'attachment__size'.
+        // Jika ketemu, hapus KESELURUHAN <figcaption>-nya sekalian sampai ke akar-akarnya!
+        $html = preg_replace('/<figcaption[^>]*>.*?attachment__(name|size).*?<\/figcaption>/is', '', $html);
+
+        // 2. Jaga-jaga jika span nama/size-nya entah bagaimana berada di luar figcaption
+        $html = preg_replace('/<[^>]*attachment__(name|size)[^>]*>.*?<\/[a-z0-9]+>/is', '', $html);
+
+        // 3. Bersihkan titik pemisah yang sering nempel " · " atau "&middot;"
+        $html = str_replace([' · ', '·', '&middot;'], '', $html);
+
+        // 4. Hapus figcaption yang terlanjur kosong
+        $html = preg_replace('/<figcaption[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/figcaption>/is', '', $html);
+
+        return $html;
+    }
+    // 👆 ========================================================== 👆
+
     public function form(Form $form): Form
     {
         return $form->schema([
@@ -63,6 +86,17 @@ class ActivitiesRelationManager extends RelationManager
                         ->schema([
                             Forms\Components\Repeater::make('stages')
                                 ->label('Materi Sebelum Soal')
+                                // 👇 SATPAM BEDAH PRESISI (MATERI) 👇
+                                ->dehydrateStateUsing(function (?array $state): ?array {
+                                    if (!$state) return $state;
+                                    foreach ($state as $key => $item) {
+                                        if (isset($item['konten_tahapan'])) {
+                                            $state[$key]['konten_tahapan'] = self::cleanTrixHTML($item['konten_tahapan']);
+                                        }
+                                    }
+                                    return $state;
+                                })
+                                // 👆 ================================ 👆
                                 ->schema([
                                     Forms\Components\Select::make('tipe_tahapan')
                                         ->label('Ikon & Judul Tahapan')
@@ -108,7 +142,6 @@ class ActivitiesRelationManager extends RelationManager
                         ->icon('heroicon-o-pencil-square')
                         ->schema([
                             
-                            // 👇 BANNER KHUSUS MODE DUOLINGO (MUNCUL JIKA TOGGLE AKTIF) 👇
                             Forms\Components\Section::make('⚡ MODE LATIHAN INSTAN AKTIF')
                                 ->schema([
                                     Forms\Components\Placeholder::make('info_instan')
@@ -126,7 +159,6 @@ class ActivitiesRelationManager extends RelationManager
                                 ->visible(fn (RelationManager $livewire) => $livewire->getOwnerRecord()->is_instant_mode)
                                 ->extraAttributes(['style' => 'background-color: #fffbeb; border: 2px solid #f59e0b;']),
                             
-                            // BANNER PANDUAN AI UNTUK GURU
                             Forms\Components\Section::make('🤖 Panduan Input Soal Adaptif (AI)')
                                 ->schema([
                                     Forms\Components\Placeholder::make('panduan_ai')
@@ -154,14 +186,31 @@ class ActivitiesRelationManager extends RelationManager
                             Forms\Components\Repeater::make('questions')
                                 ->relationship('questions')
                                 ->label('Rentetan Soal (Ayo Berlatih)')
+                                // 👇 SATPAM BEDAH PRESISI (CREATE SOAL BARU) 👇
+                                ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                                    foreach (['question_text', 'answer_explanation'] as $field) {
+                                        if (isset($data[$field])) {
+                                            $data[$field] = self::cleanTrixHTML($data[$field]);
+                                        }
+                                    }
+                                    return $data;
+                                })
+                                // 👇 SATPAM BEDAH PRESISI (UPDATE SOAL LAMA) 👇
+                                ->mutateRelationshipDataBeforeSaveUsing(function (array $data): array {
+                                    foreach (['question_text', 'answer_explanation'] as $field) {
+                                        if (isset($data[$field])) {
+                                            $data[$field] = self::cleanTrixHTML($data[$field]);
+                                        }
+                                    }
+                                    return $data;
+                                })
+                                // 👆 ========================================= 👆
                                 ->schema([
                                     Forms\Components\Grid::make(3)->schema([
                                         
-                                        // 👇 KUNCI TIPE SOAL JIKA MODE INSTAN AKTIF 👇
                                         Forms\Components\Select::make('answer_format')
                                             ->options(config('soal.tipe')) 
                                             ->disableOptionWhen(fn (string $value, RelationManager $livewire) => 
-                                                // Jika Instant Mode menyala, Disable Isian Rumpang!
                                                 $livewire->getOwnerRecord()->is_instant_mode && in_array($value, ['complex_fill'])
                                             )
                                             ->required()->live()->label('Tipe Jawaban'),
@@ -187,7 +236,8 @@ class ActivitiesRelationManager extends RelationManager
 
                                             Forms\Components\RichEditor::make('question_text')
                                                 ->label('Teks Pertanyaan (Bisa sisip gambar)')
-                                                ->fileAttachmentsDisk('modul_rahasia')->fileAttachmentsVisibility('private')
+                                                ->fileAttachmentsDisk('modul_rahasia')
+                                                ->fileAttachmentsVisibility('private')
                                                 ->fileAttachmentsDirectory(function (RelationManager $livewire, Forms\Get $get) {
                                                     $modul = Str::slug($livewire->getOwnerRecord()->title ?? 'modul');
                                                     $aktivitas = Str::slug($get('../../title') ?? 'aktivitas');
@@ -197,11 +247,9 @@ class ActivitiesRelationManager extends RelationManager
                                                 ->required(),
                                         ]),
                                     
-                                    // KUNCI JAWABAN
                                     Forms\Components\Section::make('Kunci Jawaban & Pembahasan')
                                         ->schema([
                                             
-                                            // 👇 LOGIKA REQUIRED DINAMIS 👇
                                             Forms\Components\TextInput::make('correct_answer')
                                                 ->label('Kunci Jawaban Pasti')
                                                 ->helperText(fn (RelationManager $livewire) => 
@@ -210,7 +258,6 @@ class ActivitiesRelationManager extends RelationManager
                                                     : 'Opsional (Hanya untuk referensi).'
                                                 )
                                                 ->visible(fn (Forms\Get $get) => in_array($get('answer_format'), ['number_input', 'text_input']))
-                                                // Jadikan Wajib (Required) jika menggunakan Tipe Input DAN Mode Instan menyala
                                                 ->required(fn (Forms\Get $get, RelationManager $livewire) => 
                                                     $livewire->getOwnerRecord()->is_instant_mode && in_array($get('answer_format'), ['number_input', 'text_input'])
                                                 ),
@@ -242,7 +289,6 @@ class ActivitiesRelationManager extends RelationManager
                                                 ->toolbarButtons(['bold', 'italic', 'underline', 'bulletList', 'orderedList']),
                                         ])->collapsible()->collapsed(false),
 
-                                    // OPSI JAWABAN (REPEATER DINAMIS)
                                     Forms\Components\Repeater::make('options')
                                         ->label('Konfigurasi Opsi')
                                         ->schema([

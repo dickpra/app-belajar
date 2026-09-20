@@ -8,66 +8,97 @@
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Nunito', sans-serif; background-color: #F0F9FF; }
-        .bubbly-card { border-radius: 24px; box-shadow: 0 8px 25px -5px rgba(59, 130, 246, 0.12); }
-        .bounce-in { animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        @keyframes bounceIn { 0% { transform: scale(0.8) translateY(20px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
-        
-        /* ==============================================================
-           PERBAIKAN GAMBAR & CAPTION TRIX EDITOR (Bawaan Filament)
-           ============================================================== */
-        .prose figure.attachment {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 1rem 0 !important;
-            padding: 0 !important;
-            display: block;
-        }
-        
-        /* 1. Sembunyikan Link & Nama File Bawaan Trix */
-        .prose figure.attachment a {
-            pointer-events: none !important; 
-            text-decoration: none !important; 
-            color: inherit !important; 
-            cursor: default !important; 
-        }
-        .prose figure.attachment .attachment__name,
-        .prose figure.attachment .attachment__size {
-            display: none !important; /* HILANGKAN TEKS "image.png 39 KB" */
-        }
-        .prose figure.attachment figcaption {
-            display: none !important; /* Sembunyikan seluruh caption bawaan */
-        }
+    /* Background polkadot lucu untuk anak-anak */
+    body { 
+        font-family: 'Nunito', sans-serif; 
+        background-color: #F0F9FF; 
+        background-image: radial-gradient(#bae6fd 2.5px, transparent 2.5px);
+        background-size: 30px 30px;
+    }
+    
+    /* Kartu bergaya 3D tebal khas game edukasi */
+    .bubbly-card { 
+        border-radius: 2rem; 
+        border: 4px solid #cbd5e1;
+        box-shadow: 0 10px 0 #cbd5e1; 
+    }
+    
+    .bounce-in { animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    @keyframes bounceIn { 
+        0% { transform: scale(0.7) translateY(30px); opacity: 0; } 
+        100% { transform: scale(1) translateY(0); opacity: 1; } 
+    }
+    
+    /* Tombol 3D Taktil */
+    .btn-3d {
+        transition: all 0.1s ease-in-out;
+    }
+    .btn-3d:active {
+        transform: translateY(6px);
+        box-shadow: none !important;
+        border-bottom-width: 2px !important;
+    }
 
-        /* 2. Batasi Tinggi Gambar Agar Pas di Layar HP (Responsive) */
-        .prose img { 
-            width: 100% !important; 
-            max-width: 100% !important; 
-            max-height: 220px !important; /* 👈 Kunci tinggi maksimal agar tidak raksasa */
-            height: auto !important; 
-            object-fit: contain !important; /* Pastikan gambar tidak gepeng */
-            border-radius: 1rem !important; 
-            margin: 0 auto !important; 
-            border: 3px solid #e2e8f0; 
-            box-shadow: 0 4px 10px -2px rgba(59, 130, 246, 0.1); 
-        }
+    /* Konfigurasi Gambar Trix */
+    .prose figure.attachment a {
+        pointer-events: none !important; 
+        text-decoration: none !important; 
+        color: inherit !important; 
+        cursor: default !important; 
+    }
+    
+    /* Style Caption Custom (Hanya berlaku jika user mengetik caption sendiri) */
+    .prose figure.attachment figcaption.attachment__caption--edited { 
+        display: block !important; 
+        text-align: center !important; 
+        font-size: 0.85rem !important; 
+        font-weight: 800 !important; 
+        color: #64748b !important; 
+        margin-top: 1rem !important; 
+        padding: 0.5rem 1rem !important; 
+        background-color: #f8fafc !important; 
+        border-radius: 1rem !important; 
+        border: 3px dashed #cbd5e1 !important; 
+        width: max-content !important; 
+        max-width: 90% !important; 
+        margin-left: auto !important; 
+        margin-right: auto !important; 
+    }
 
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    </style>
+    /* 👇 JURUS RAHASIA: Sembunyikan caption bawaan Trix (yang isinya PNG/KB) 👇 */
+    .prose figure.attachment figcaption:not(.attachment__caption--edited) {
+        display: none !important;
+    }
+    
+    .prose img { 
+        width: 100% !important; 
+        max-width: 100% !important; 
+        max-height: 250px !important; 
+        height: auto !important; 
+        object-fit: contain !important; 
+        border-radius: 1.5rem !important; 
+        margin: 0 auto !important; 
+        border: 4px solid #e2e8f0; 
+        box-shadow: 0 6px 0 #e2e8f0; 
+    }
+    
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
 </head>
 <body class="text-slate-800 antialiased h-screen flex flex-col overflow-hidden">
-<!-- 👇 TOAST NOTIFIKASI KHAS GAME 👇 -->
+    
+    <!-- TOAST NOTIFIKASI -->
     <div id="custom-toast" class="fixed top-10 left-1/2 transform -translate-x-1/2 z-[200] transition-all duration-500 ease-in-out opacity-0 -translate-y-20 pointer-events-none">
-        <div class="bg-red-500 border-4 border-white text-white px-6 py-4 rounded-[2rem] shadow-[0_8px_0_#b91c1c] flex items-center gap-4">
-            <div class="text-4xl animate-bounce drop-shadow-md">⚠️</div>
+        <div class="bg-red-500 border-4 border-white text-white px-6 py-4 rounded-[2rem] shadow-[0_8px_0_#991b1b] flex items-center gap-4">
+            <div class="text-4xl animate-bounce drop-shadow-md">🙀</div>
             <div>
                 <h4 class="font-black text-xl leading-tight">Waduh!</h4>
                 <p id="toast-message" class="font-bold text-sm text-red-100">Pesan akan muncul di sini</p>
             </div>
         </div>
     </div>
-    <!-- 👆 ============================= 👆 -->
+
     @php
         if (!function_exists('renderPrivateImages')) {
             function renderPrivateImages($htmlContent) {
@@ -78,23 +109,17 @@
         if (!function_exists('getStageStyle')) {
             function getStageStyle($stage) {
                 return match($stage) {
-                    'berpikir'  => ['icon' => '🤔', 'text' => 'Pemantik', 'color' => 'bg-purple-400 text-purple-900'],
-                    'amati'     => ['icon' => '🔍', 'text' => 'Mengamati', 'color' => 'bg-blue-400 text-blue-900'],
-                    'mencoba'   => ['icon' => '🧪', 'text' => 'Mencoba', 'color' => 'bg-orange-400 text-orange-900'],
-                    default     => ['icon' => '📖', 'text' => 'Materi', 'color' => 'bg-yellow-400 text-yellow-900'],
+                    'berpikir'  => ['icon' => '🤔', 'text' => 'Pemantik', 'color' => 'bg-purple-400 text-purple-900 border-purple-500'],
+                    'amati'     => ['icon' => '🔍', 'text' => 'Mengamati', 'color' => 'bg-blue-400 text-blue-900 border-blue-500'],
+                    'mencoba'   => ['icon' => '🧪', 'text' => 'Mencoba', 'color' => 'bg-orange-400 text-orange-900 border-orange-500'],
+                    default     => ['icon' => '📖', 'text' => 'Materi', 'color' => 'bg-yellow-400 text-yellow-900 border-yellow-500'],
                 };
             }
         }
 
-        // ==============================================================
-        // 1. GABUNGKAN MATERI & SOAL MENJADI "SLIDES" (SUDAH DIPERBAIKI)
-        // ==============================================================
         $slides = collect();
-
         foreach($module->activities as $act) {
             $stages = is_string($act->stages) ? json_decode($act->stages, true) : ($act->stages ?? []);
-            
-            // Masukkan Materi (Dengan sistem Penyelamat jika data lama hanya pakai Deskripsi)
             if (empty($stages) && !empty($act->description)) {
                 $slides->push(['type' => 'materi', 'data' => ['tipe_tahapan' => 'materi', 'konten_tahapan' => $act->description], 'activity_title' => $act->title]);
             } else {
@@ -102,88 +127,77 @@
                     $slides->push(['type' => 'materi', 'data' => $stage, 'activity_title' => $act->title]);
                 }
             }
-            
-            // Masukkan Soal
             foreach($act->questions as $q) {
                 $isAnswered = isset($existingAnswers[$q->id]);
                 $slides->push(['type' => 'soal', 'data' => $q, 'activity_title' => $act->title, 'is_answered' => $isAnswered]);
             }
         }
-        
         $totalSlides = $slides->count();
-
-        // ==============================================================
-        // 🧠 LOGIKA PELOMPAT PINTAR (BUG FIXED!)
-        // ==============================================================
         $lastAnsweredIndex = -1;
         foreach($slides as $i => $slide) {
             if ($slide['type'] === 'soal' && $slide['is_answered']) {
-                $lastAnsweredIndex = $i; // Catat urutan soal terakhir yang punya jawaban
+                $lastAnsweredIndex = $i;
             }
         }
-        
-        // Kita mulai aplikasi SATU LANGKAH SETELAH soal terakhir yang dijawab.
-        // Jika murid belum jawab apa-apa (-1), dia akan mulai dari indeks 0 (Materi Pertama!)
         $startIndex = $lastAnsweredIndex + 1;
     @endphp
 
     <!-- HEADER & PROGRESS BAR -->
-    <header class="p-4 md:p-6 flex items-center justify-between gap-4 z-10 bg-white border-b-2 border-slate-100 shadow-sm">
-        <button onclick="window.location.href='{{ route('student.dashboard') }}'" class="text-slate-400 hover:text-slate-600 font-black text-2xl transition-transform hover:scale-110">✖</button>
-        <div class="flex-1 bg-slate-100 h-5 rounded-full overflow-hidden border-2 border-slate-200 shadow-inner relative">
-            <div id="progress-bar" class="bg-blue-500 h-full w-0 transition-all duration-500 ease-out shadow-[inset_0_-4px_0_rgba(0,0,0,0.1)] rounded-full"></div>
+    <header class="p-4 md:p-6 flex items-center justify-between gap-5 z-10 bg-white/90 backdrop-blur-md border-b-4 border-slate-200">
+        <button onclick="window.location.href='{{ route('student.dashboard') }}'" class="text-slate-400 hover:text-red-500 font-black text-3xl transition-transform hover:scale-110 active:scale-95">✖</button>
+        <div class="flex-1 bg-slate-200 h-6 rounded-full overflow-hidden border-4 border-slate-300 relative shadow-inner">
+            <!-- Progress bar lebih tebal dengan efek highlight -->
+            <div id="progress-bar" class="bg-green-400 h-full w-0 transition-all duration-500 ease-out rounded-full relative">
+                <div class="absolute top-1 left-2 right-2 h-2 bg-white/30 rounded-full"></div>
+            </div>
         </div>
     </header>
 
     <!-- AREA SLIDES -->
-    <main class="flex-1 overflow-y-auto p-4 md:p-6 pb-40 no-scrollbar relative">
-        
-        <!-- 👇 PERBAIKAN BUG SCROLL: Ubah h-full menjadi min-h-full dan pastikan w-full 👇 -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-6 pb-48 no-scrollbar relative">
         <div class="max-w-2xl mx-auto min-h-full flex flex-col justify-start w-full">
-            
             <form id="instant-form" class="w-full h-full pb-10">
-                
                 @foreach($slides as $index => $slide)
                     <!-- KARTU SOAL -->
-                    <div id="slide-{{ $index }}" class="slide-card hidden w-full bubbly-card bg-white p-6 md:p-8 border-[3px] border-slate-200 mb-8">
+                    <div id="slide-{{ $index }}" class="slide-card hidden w-full bubbly-card bg-white p-6 md:p-10 mb-8">
                         
-                        <div class="text-center mb-6">
-                            <span class="inline-block bg-slate-100 text-slate-600 font-black px-4 py-1.5 rounded-full text-xs uppercase tracking-widest border-2 border-slate-200">
-                                {{ $slide['activity_title'] }}
+                        <div class="text-center mb-8">
+                            <span class="inline-block bg-slate-100 text-slate-500 font-black px-5 py-2 rounded-2xl text-sm uppercase tracking-widest border-4 border-slate-200 shadow-[0_4px_0_#e2e8f0]">
+                                🎯 {{ $slide['activity_title'] }}
                             </span>
                         </div>
 
                         <!-- JIKA INI SLIDE MATERI -->
                         @if($slide['type'] === 'materi')
                             @php $style = getStageStyle($slide['data']['tipe_tahapan'] ?? 'materi'); @endphp
-                            <div class="text-center mb-6">
-                                <span class="{{ $style['color'] }} px-5 py-1.5 rounded-full font-black text-lg border-2 border-white shadow-sm">
+                            <div class="text-center mb-8">
+                                <span class="{{ $style['color'] }} px-6 py-2 rounded-2xl font-black text-xl border-4 shadow-[0_4px_0_rgba(0,0,0,0.1)] inline-flex items-center gap-2">
                                     {{ $style['icon'] }} {{ $style['text'] }}
                                 </span>
                             </div>
 
-                            <div class="flex flex-wrap items-center justify-center gap-3 mb-6">
-                                <button type="button" onclick="bacakanTeks(`{{ strip_tags($slide['data']['konten_tahapan'] ?? '') }}`)" class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-2 px-4 rounded-full flex items-center gap-2 border-2 border-blue-300 shadow-sm active:translate-y-1 transition-all">
-                                    🔊 Bacakan Materi
+                            <div class="flex flex-wrap items-center justify-center gap-4 mb-8">
+                                <button type="button" onclick="bacakanTeks(`{{ strip_tags($slide['data']['konten_tahapan'] ?? '') }}`)" class="btn-3d bg-blue-100 text-blue-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-blue-300 border-b-[6px] shadow-sm">
+                                    📢 Bacakan
                                 </button>
                                 @if(!empty($slide['data']['sign_language_video']))
-                                    <button type="button" onclick="toggleVideo('materi-{{ $index }}')" class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold py-2 px-4 rounded-full flex items-center gap-2 border-2 border-purple-300 shadow-sm active:translate-y-1 transition-all">
+                                    <button type="button" onclick="toggleVideo('materi-{{ $index }}')" class="btn-3d bg-purple-100 text-purple-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-purple-300 border-b-[6px] shadow-sm">
                                         🤟 Lihat Isyarat
                                     </button>
                                 @endif
                             </div>
 
                             @if(!empty($slide['data']['sign_language_video']))
-                                <div id="video-materi-{{ $index }}" class="hidden mb-6 relative rounded-2xl overflow-hidden border-4 border-purple-300 shadow-md bg-black">
-                                    <div class="bg-purple-100 px-4 py-2 flex justify-between items-center border-b-2 border-purple-300">
-                                        <span class="font-black text-purple-800 text-sm flex items-center gap-2">🤟 Bantuan Isyarat</span>
-                                        <button type="button" onclick="toggleVideo('materi-{{ $index }}')" class="text-red-500 hover:text-red-700 font-black text-xl hover:scale-110 transition-transform">✖</button>
+                                <div id="video-materi-{{ $index }}" class="hidden mb-8 relative rounded-[2rem] overflow-hidden border-4 border-purple-300 shadow-[0_8px_0_#d8b4fe] bg-black">
+                                    <div class="bg-purple-100 px-5 py-3 flex justify-between items-center border-b-4 border-purple-300">
+                                        <span class="font-black text-purple-800 text-base flex items-center gap-2">🤟 Panduan Bahasa Isyarat</span>
+                                        <button type="button" onclick="toggleVideo('materi-{{ $index }}')" class="text-red-500 hover:text-red-700 font-black text-2xl hover:scale-110 transition-transform">✖</button>
                                     </div>
                                     <video id="player-materi-{{ $index }}" controls class="w-full aspect-video"><source src="{{ route('private.video', ['path' => $slide['data']['sign_language_video']]) }}" type="video/mp4"></video>
                                 </div>
                             @endif
 
-                            <div class="prose prose-blue prose-lg font-bold text-slate-700 mx-auto leading-relaxed w-full max-w-full">
+                            <div class="prose prose-blue prose-xl font-bold text-slate-700 mx-auto leading-relaxed w-full max-w-full">
                                 {!! renderPrivateImages($slide['data']['konten_tahapan'] ?? '') !!}
                             </div>
 
@@ -192,41 +206,40 @@
                             @php $question = $slide['data']; @endphp
                             
                             @if(!empty($question->image))
-                                <div class="mb-6 flex justify-center bg-slate-50 p-3 rounded-2xl border-2 border-slate-100">
-                                    <img src="{{ route('private.image', ['path' => $question->image]) }}" class="max-h-64 object-contain rounded-xl">
+                                <div class="mb-8 flex justify-center bg-slate-50 p-4 rounded-3xl border-4 border-slate-200">
+                                    <img src="{{ route('private.image', ['path' => $question->image]) }}" class="max-h-72 object-contain rounded-2xl">
                                 </div>
                             @endif
 
-                            <div class="flex flex-wrap items-center justify-center gap-3 mb-6">
-                                <button type="button" onclick="bacakanTeks(`{{ strip_tags($question->question_text) }}`)" class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-2 px-4 rounded-full flex items-center gap-2 border-2 border-blue-300 shadow-sm active:translate-y-1 transition-all">
-                                    🔊 Bacakan Soal
+                            <div class="flex flex-wrap items-center justify-center gap-4 mb-8">
+                                <button type="button" onclick="bacakanTeks(`{{ strip_tags($question->question_text) }}`)" class="btn-3d bg-blue-100 text-blue-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-blue-300 border-b-[6px] shadow-sm">
+                                    📢 Bacakan Soal
                                 </button>
                                 @if(!empty($question->sign_language_video))
-                                    <button type="button" onclick="toggleVideo('soal-{{ $index }}')" class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold py-2 px-4 rounded-full flex items-center gap-2 border-2 border-purple-300 shadow-sm active:translate-y-1 transition-all">
+                                    <button type="button" onclick="toggleVideo('soal-{{ $index }}')" class="btn-3d bg-purple-100 text-purple-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-purple-300 border-b-[6px] shadow-sm">
                                         🤟 Lihat Isyarat
                                     </button>
                                 @endif
                             </div>
 
                             @if(!empty($question->sign_language_video))
-                                <div id="video-soal-{{ $index }}" class="hidden mb-6 relative rounded-2xl overflow-hidden border-4 border-purple-300 shadow-md bg-black">
-                                    <div class="bg-purple-100 px-4 py-2 flex justify-between items-center border-b-2 border-purple-300">
-                                        <span class="font-black text-purple-800 text-sm flex items-center gap-2">🤟 Bantuan Isyarat</span>
-                                        <button type="button" onclick="toggleVideo('soal-{{ $index }}')" class="text-red-500 hover:text-red-700 font-black text-xl hover:scale-110 transition-transform">✖</button>
+                                <div id="video-soal-{{ $index }}" class="hidden mb-8 relative rounded-[2rem] overflow-hidden border-4 border-purple-300 shadow-[0_8px_0_#d8b4fe] bg-black">
+                                    <div class="bg-purple-100 px-5 py-3 flex justify-between items-center border-b-4 border-purple-300">
+                                        <span class="font-black text-purple-800 text-base flex items-center gap-2">🤟 Panduan Bahasa Isyarat</span>
+                                        <button type="button" onclick="toggleVideo('soal-{{ $index }}')" class="text-red-500 hover:text-red-700 font-black text-2xl hover:scale-110 transition-transform">✖</button>
                                     </div>
                                     <video id="player-soal-{{ $index }}" controls class="w-full aspect-video"><source src="{{ route('private.video', ['path' => $question->sign_language_video]) }}" type="video/mp4"></video>
                                 </div>
                             @endif
 
-                            <div class="prose prose-blue prose-xl font-black text-slate-800 text-center mb-8 leading-relaxed mx-auto">
+                            <div class="prose prose-blue prose-2xl font-black text-slate-800 text-center mb-10 leading-relaxed mx-auto">
                                 {!! renderPrivateImages($question->question_text) !!}
                             </div>
 
-                            <div class="mt-4">
+                            <div class="mt-6">
                                 @includeIf('student.tipe_soal.' . $question->answer_format, ['question' => $question, 'existingAnswers' => [], 'isCompleted' => false])
                             </div>
                         @endif
-
                     </div>
                 @endforeach
             </form>
@@ -234,28 +247,28 @@
     </main>
 
     <!-- BOTTOM ACTION BAR -->
-    <div id="bottom-bar" class="fixed bottom-0 left-0 w-full bg-white border-t-[3px] border-slate-200 p-4 md:p-6 z-50 transition-all duration-300 shadow-[0_-4px_15px_rgba(0,0,0,0.05)]">
-        <div class="max-w-2xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+    <div id="bottom-bar" class="fixed bottom-0 left-0 w-full bg-white border-t-4 border-slate-200 p-5 md:p-8 z-50 transition-all duration-300">
+        <div class="max-w-2xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
             <div id="feedback-area" class="hidden flex-1 flex flex-col justify-center w-full">
-                <div class="flex items-center gap-3 mb-1">
-                    <div id="feedback-icon" class="w-12 h-12 rounded-full flex items-center justify-center font-black text-2xl bg-white shadow-sm border-2"></div>
-                    <h3 id="feedback-title" class="text-xl md:text-2xl font-black uppercase tracking-wide"></h3>
+                <div class="flex items-center gap-4 mb-2">
+                    <div id="feedback-icon" class="w-14 h-14 rounded-full flex items-center justify-center font-black text-3xl bg-white border-4 shadow-sm"></div>
+                    <h3 id="feedback-title" class="text-2xl md:text-3xl font-black uppercase tracking-wider"></h3>
                 </div>
-                <p id="feedback-message" class="font-bold opacity-90 text-sm md:text-base"></p>
+                <p id="feedback-message" class="font-bold opacity-90 text-base md:text-lg ml-1"></p>
             </div>
-            <button id="btn-action" class="w-full md:w-auto min-w-[200px] text-white font-black text-xl py-4 px-8 rounded-2xl shadow-[0_6px_0_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-[6px] transition-all uppercase tracking-wide border-2 border-white">
+            <button id="btn-action" class="btn-3d w-full md:w-auto min-w-[220px] text-white font-black text-2xl py-5 px-8 rounded-2xl uppercase tracking-wider border-2 border-transparent">
                 Memuat...
             </button>
         </div>
     </div>
 
     <!-- MODAL SELESAI -->
-    <div id="celebrationModal" class="fixed inset-0 bg-blue-900 bg-opacity-80 z-[100] hidden flex items-center justify-center backdrop-blur-sm transition-opacity">
-        <div class="bg-white p-8 md:p-12 rounded-[3rem] max-w-md w-full text-center shadow-2xl border-8 border-yellow-400 relative">
-            <div class="text-8xl md:text-9xl mb-6 animate-bounce drop-shadow-xl">🏆</div>
-            <h2 class="text-4xl font-black text-green-500 mb-3">Luar Biasa!</h2>
-            <p class="text-xl font-bold text-slate-600 mb-8">Latihan telah diselesaikan. Nilaimu sudah tersimpan di sistem.</p>
-            <button onclick="window.location.href='{{ route('student.dashboard') }}'" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-black py-4 rounded-2xl shadow-[0_6px_0_#2563eb] active:translate-y-[6px] active:shadow-none text-xl border-4 border-white">
+    <div id="celebrationModal" class="fixed inset-0 bg-slate-900/60 z-[100] hidden flex items-center justify-center backdrop-blur-sm transition-opacity px-4">
+        <div class="bg-white p-10 md:p-14 rounded-[3rem] max-w-lg w-full text-center border-8 border-yellow-400 shadow-[0_15px_0_#ca8a04] relative">
+            <div class="text-8xl md:text-9xl mb-8 animate-bounce drop-shadow-xl">🏆</div>
+            <h2 class="text-5xl font-black text-green-500 mb-4 tracking-wide">Yey, Selesai!</h2>
+            <p class="text-2xl font-bold text-slate-500 mb-10">Kamu hebat banget! Nilaimu sudah tersimpan.</p>
+            <button onclick="window.location.href='{{ route('student.dashboard') }}'" class="btn-3d w-full bg-blue-500 text-white font-black py-5 rounded-2xl border-2 border-blue-400 border-b-[8px] border-b-blue-700 text-2xl tracking-wider">
                 Selesai Berpetualang ➔
             </button>
         </div>
@@ -263,56 +276,72 @@
 
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
-
-        // ==========================================
-        // FITUR TOAST NOTIFIKASI (PENGGANTI ALERT)
-        // ==========================================
         function showToast(pesan) {
             const toast = document.getElementById('custom-toast');
             const toastMsg = document.getElementById('toast-message');
-            
             toastMsg.innerText = pesan;
-            
-            // Animasi masuk (turun dari atas)
             toast.classList.remove('opacity-0', '-translate-y-20');
             toast.classList.add('opacity-100', 'translate-y-0');
-
-            // Animasi keluar otomatis setelah 3 detik
             setTimeout(() => {
                 toast.classList.remove('opacity-100', 'translate-y-0');
                 toast.classList.add('opacity-0', '-translate-y-20');
-            }, 3000);
+            }, 3500);
         }
+        
         const slidesData = [
             @foreach($slides as $slide)
                 { type: '{{ $slide['type'] }}', id: {{ $slide['type'] == 'soal' ? $slide['data']->id : 'null' }} },
             @endforeach
         ];
         const totalSlides = {{ $totalSlides }};
-        let currentIndex = {{ $startIndex }}; // 👈 Logika pelompat pintar sudah dipakai!
+        let currentIndex = {{ $startIndex }};
         let isChecking = false;
 
         document.addEventListener("DOMContentLoaded", function() {
-            if (currentIndex >= totalSlides) {
-                akhiriLatihan();
-            } else {
-                showSlide(currentIndex);
-            }
+            if (currentIndex >= totalSlides) akhiriLatihan();
+            else showSlide(currentIndex);
         });
 
-        // ==========================================
-        // FITUR SUARA & VIDEO ISYARAT
-        // ==========================================
-        function bacakanTeks(teks) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); 
-                const robot = new SpeechSynthesisUtterance(teks.replace(/<[^>]*>?/gm, ''));
-                robot.lang = 'id-ID'; robot.rate = 0.9; robot.pitch = 1.1;
-                window.speechSynthesis.speak(robot);
-            } else {
+        function bacakanTeks(htmlTeks) {
+            if (!('speechSynthesis' in window)) {
                 alert("Yah, browsermu belum mendukung fitur suara ini.");
+                return;
             }
+            
+            window.speechSynthesis.cancel(); 
+
+            // 1. Ruang Virtual
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlTeks;
+
+            // 2. Buang tag jika masih ada
+            const sampah = tempDiv.querySelectorAll('.attachment__name, .attachment__size');
+            sampah.forEach(el => el.remove());
+
+            // 3. Ambil teks murni
+            let teksBersih = tempDiv.innerText || tempDiv.textContent;
+
+            // 4. 👇 SENSOR SNIPER (HANYA MENGHAPUS POLA TRIX) 👇
+            teksBersih = teksBersih
+                // Pola jitu: "nama_file.png 484.54 KB" atau "gambar.jpg"
+                .replace(/[a-zA-Z0-9_-]+\.(png|jpg|jpeg|gif|webp|svg)(\s+\d+([.,]\d+)?\s*(KB|MB|GB))?/gi, '')
+                
+                // 5. Terapi Artikulasi Robot
+                .replace(/&nbsp;/g, ' ')      
+                .replace(/[_]/g, ' ')          
+                .replace(/\s+/g, ' ')          
+                .replace(/([.!?])\s*(?=[a-zA-Z])/g, '$1 ') 
+                .trim();
+
+            // 6. Eksekusi Suara
+            const robot = new SpeechSynthesisUtterance(teksBersih);
+            robot.lang = 'id-ID'; 
+            robot.rate = 0.9;  // Kecepatan santai
+            robot.pitch = 1.1; // Nada ramah
+            
+            window.speechSynthesis.speak(robot);
         }
+
         function toggleVideo(idMap) {
             const container = document.getElementById(`video-${idMap}`);
             const player = document.getElementById(`player-${idMap}`);
@@ -324,9 +353,6 @@
             }
         }
 
-        // ==========================================
-        // MESIN NAVIGASI SLIDE & PENILAI DUOLINGO
-        // ==========================================
         function showSlide(index) {
             document.querySelectorAll('.slide-card').forEach(el => {
                 el.classList.add('hidden');
@@ -335,12 +361,10 @@
             const target = document.getElementById(`slide-${index}`);
             if(target) {
                 target.classList.remove('hidden');
-                // Trigger animasi css ulang
                 void target.offsetWidth;
                 target.classList.add('bounce-in');
             }
-
-            document.getElementById('progress-bar').style.width = `${(index / totalSlides) * 100}%`;
+            document.getElementById('progress-bar').style.width = `${((index + 1) / totalSlides) * 100}%`;
             resetBottomBar(slidesData[index].type);
         }
 
@@ -350,16 +374,16 @@
             const feedback = document.getElementById('feedback-area');
             const btn = document.getElementById('btn-action');
 
-            bar.className = 'fixed bottom-0 left-0 w-full bg-white border-t-[3px] border-slate-200 p-4 md:p-6 z-50 transition-all duration-300 shadow-[0_-4px_15px_rgba(0,0,0,0.05)]';
+            bar.className = 'fixed bottom-0 left-0 w-full bg-white border-t-4 border-slate-200 p-5 md:p-8 z-50 transition-all duration-300';
             feedback.classList.add('hidden');
             
             if (type === 'materi') {
                 btn.innerHTML = 'Paham, Lanjut! ➔';
-                btn.className = 'w-full md:w-auto min-w-[200px] bg-blue-500 hover:bg-blue-400 text-white font-black text-xl py-4 px-8 rounded-2xl shadow-[0_6px_0_#1d4ed8] active:shadow-none active:translate-y-[6px] transition-all uppercase tracking-wide border-2 border-white';
+                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-blue-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-blue-400 border-b-[8px] border-b-blue-700 uppercase tracking-wider';
                 btn.setAttribute('onclick', 'slideSelanjutnya()');
             } else {
                 btn.innerHTML = 'Cek Jawaban 🔍';
-                btn.className = 'w-full md:w-auto min-w-[200px] bg-green-500 hover:bg-green-400 text-white font-black text-xl py-4 px-8 rounded-2xl shadow-[0_6px_0_#16a34a] active:shadow-none active:translate-y-[6px] transition-all uppercase tracking-wide border-2 border-white';
+                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-green-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-green-400 border-b-[8px] border-b-green-700 uppercase tracking-wider';
                 btn.setAttribute('onclick', 'cekJawaban()');
             }
         }
@@ -370,14 +394,13 @@
             const form = document.getElementById('instant-form');
             const formData = new FormData(form);
             
-            // Mengakomodasi semua tipe jawaban (String, Array Rumpang, JSON Matching)
             let jawabanTarget = formData.get(`jawaban[${currentSlide.id}]`);
             if (!jawabanTarget && formData.has(`jawaban[${currentSlide.id}][]`)) {
                 jawabanTarget = formData.getAll(`jawaban[${currentSlide.id}][]`).join(' | ');
             }
 
             if (!jawabanTarget || jawabanTarget === '{}') {
-                showToast("Ayo, isi atau pilih jawabanmu dulu!");
+                showToast("Ayo, isi jawabanmu dulu ya! 🤓");
                 return;
             }
 
@@ -402,28 +425,28 @@
             const btn = document.getElementById('btn-action');
             
             feedback.classList.remove('hidden');
-            bar.classList.remove('bg-white');
+            bar.classList.remove('bg-white', 'border-slate-200');
 
             if (data.is_correct) {
-                bar.classList.add('bg-green-100', 'border-green-300');
-                document.getElementById('feedback-icon').className = 'w-12 h-12 rounded-full flex items-center justify-center font-black text-2xl bg-white border-green-200 text-green-500 shadow-sm';
+                bar.classList.add('bg-green-100', 'border-green-400');
+                document.getElementById('feedback-icon').className = 'w-14 h-14 rounded-full flex items-center justify-center font-black text-3xl bg-white border-4 border-green-200 text-green-500';
                 document.getElementById('feedback-icon').innerHTML = '⭐';
-                document.getElementById('feedback-title').className = 'text-xl md:text-2xl font-black uppercase tracking-wide text-green-600';
-                document.getElementById('feedback-title').innerText = 'Tepat Sekali!';
-                document.getElementById('feedback-message').className = 'font-bold text-green-700 opacity-90 text-sm md:text-base';
+                document.getElementById('feedback-title').className = 'text-2xl md:text-3xl font-black uppercase tracking-wider text-green-600';
+                document.getElementById('feedback-title').innerText = 'Hebat Banget!';
+                document.getElementById('feedback-message').className = 'font-bold text-green-700 opacity-90 text-base md:text-lg ml-1';
                 document.getElementById('feedback-message').innerText = data.message;
                 
-                btn.className = 'w-full md:w-auto min-w-[200px] bg-green-500 hover:bg-green-600 text-white font-black text-xl py-4 px-8 rounded-2xl shadow-[0_6px_0_#15803d] active:shadow-none active:translate-y-[6px] transition-all uppercase tracking-wide';
+                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-green-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-green-400 border-b-[8px] border-b-green-700 uppercase tracking-wider';
             } else {
-                bar.classList.add('bg-red-100', 'border-red-300');
-                document.getElementById('feedback-icon').className = 'w-12 h-12 rounded-full flex items-center justify-center font-black text-2xl bg-white border-red-200 text-red-500 shadow-sm';
+                bar.classList.add('bg-red-100', 'border-red-400');
+                document.getElementById('feedback-icon').className = 'w-14 h-14 rounded-full flex items-center justify-center font-black text-3xl bg-white border-4 border-red-200 text-red-500';
                 document.getElementById('feedback-icon').innerHTML = '❌';
-                document.getElementById('feedback-title').className = 'text-xl md:text-2xl font-black uppercase tracking-wide text-red-600';
-                document.getElementById('feedback-title').innerText = 'Kurang Tepat';
-                document.getElementById('feedback-message').className = 'font-bold text-red-700 opacity-90 text-sm md:text-base';
-                document.getElementById('feedback-message').innerText = `Kunci: ${data.correct_answer || 'Tetap semangat, perhatikan lagi.'}`;
+                document.getElementById('feedback-title').className = 'text-2xl md:text-3xl font-black uppercase tracking-wider text-red-600';
+                document.getElementById('feedback-title').innerText = 'Hampir Benar';
+                document.getElementById('feedback-message').className = 'font-bold text-red-700 opacity-90 text-base md:text-lg ml-1';
+                document.getElementById('feedback-message').innerText = `Kunci: ${data.correct_answer || 'Tetap semangat, perhatikan lagi ya!'}`;
                 
-                btn.className = 'w-full md:w-auto min-w-[200px] bg-red-500 hover:bg-red-600 text-white font-black text-xl py-4 px-8 rounded-2xl shadow-[0_6px_0_#b91c1c] active:shadow-none active:translate-y-[6px] transition-all uppercase tracking-wide';
+                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-red-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-red-400 border-b-[8px] border-b-red-700 uppercase tracking-wider';
             }
 
             btn.innerHTML = 'Lanjut ➔';
@@ -441,34 +464,23 @@
         }
 
         function akhiriLatihan() {
-            // 1. Mentokkan Progress bar
             document.getElementById('progress-bar').style.width = `100%`;
-            
-            // 2. Beritahu Server bahwa modul ini resmi selesai!
-            fetch("{{ route('student.module.selesai-instan', $module->id) }}", {
+            // 👇 PERHATIKAN PENAMBAHAN acak_id() DI BAWAH INI 👇
+            fetch("{{ route('student.module.selesai-instan', acak_id($module->id)) }}", {
                 method: 'POST',
-                headers: { 
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 
-                    'Content-Type': 'application/json' 
-                }
+                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Content-Type': 'application/json' }
             })
             .then(res => res.json())
             .then(data => {
-                // 3. Panggil tembakan confetti setelah server mengonfirmasi!
-                confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-                
-                // 4. Munculkan Modal Pemenang
+                confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
                 document.getElementById('celebrationModal').classList.remove('hidden');
                 document.getElementById('bottom-bar').classList.add('hidden');
             })
             .catch(err => {
-                alert("Gagal menyimpan status selesai, cek koneksimu.");
+                showToast("Gagal menyimpan status, cek koneksimu ya.");
             });
         }
 
-        // ==========================================
-        // SIHIR TARIK GARIS (MATCHING COMPONENT)
-        // ==========================================
         // ==========================================
         // SIHIR TARIK GARIS & GUNTING GARIS (MATCHING)
         // ==========================================
