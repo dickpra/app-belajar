@@ -7,39 +7,58 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\RedirectResponse; // 👈 Pastikan ini di-import
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
+    protected $guarded = [];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        // 1. Jika GURU login/nyasar ke link Admin -> Langsung lempar ke Teacher
+        if ($panel->getId() === 'admin' && $this->role === 'teacher') {
+            throw new HttpResponseException(new RedirectResponse(url('/teacher')));
+        }
+
+        // 2. Jika ADMIN login/nyasar ke link Guru -> Langsung lempar ke Admin
+        if ($panel->getId() === 'teacher' && $this->role === 'admin') {
+            throw new HttpResponseException(new RedirectResponse(url('/admin')));
+        }
+
+        // 3. Beri izin masuk HANYA jika jalurnya dan role-nya sama-sama cocok
+        if ($panel->getId() === 'admin' && $this->role === 'admin') {
+            return true;
+        }
+
+        if ($panel->getId() === 'teacher' && $this->role === 'teacher') {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isTeacher(): bool
+    {
+        return $this->role === 'teacher';
+    }
 }

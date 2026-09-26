@@ -15,6 +15,7 @@ return new class extends Migration
             $table->enum('difficulty', ['easy', 'medium', 'hard'])->default('medium');
             $table->string('image')->nullable();
             $table->string('sign_language_video')->nullable();
+            $table->string('voice_note')->nullable();
             $table->string('answer_format'); // multiple_choice, number_input, text
             $table->string('correct_answer')->nullable();
             $table->string('true_false_answer')->nullable(); // Menyimpan "Benar" atau "Salah"

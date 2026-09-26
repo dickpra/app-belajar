@@ -274,15 +274,48 @@
             if (currentIndex >= totalSlides) { akhiriLatihan(); } else { showSlide(currentIndex); }
         });
 
-        function bacakanTeks(teks) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); 
-                const robot = new SpeechSynthesisUtterance(teks.replace(/<[^>]*>?/gm, ''));
-                robot.lang = 'id-ID'; robot.rate = 0.85; robot.pitch = 1.2; // Diperlambat sedikit & pitch dinaikkan agar terdengar bersahabat
-                window.speechSynthesis.speak(robot);
-            } else {
+        let robotBicara = false;
+
+        function bacakanTeks(htmlTeks, btnElement) {
+            if (!('speechSynthesis' in window)) {
                 showToast("Yah, browsermu belum mendukung fitur suara ini.");
+                return;
             }
+            
+            // 👇 FITUR STOP/BERHENTI 👇
+            if (robotBicara) {
+                window.speechSynthesis.cancel();
+                robotBicara = false;
+                if(btnElement) btnElement.innerHTML = '📢 Bacakan';
+                return;
+            }
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlTeks;
+            const sampah = tempDiv.querySelectorAll('.attachment__name, .attachment__size');
+            sampah.forEach(el => el.remove());
+            let teksBersih = tempDiv.innerText || tempDiv.textContent;
+
+            teksBersih = teksBersih
+                .replace(/[a-zA-Z0-9_-]+\.(png|jpg|jpeg|gif|webp|svg)(\s+\d+([.,]\d+)?\s*(KB|MB|GB))?/gi, '')
+                .replace(/ /g, ' ').replace(/[_]/g, ' ').replace(/\s+/g, ' ')          
+                .replace(/([.!?])\s*(?=[a-zA-Z])/g, '$1 ').trim();
+
+            const robot = new SpeechSynthesisUtterance(teksBersih);
+            robot.lang = 'id-ID'; 
+            robot.rate = 0.9;  
+            robot.pitch = 1.1; 
+            
+            // Kembalikan tombol saat suara selesai
+            robot.onend = function() {
+                robotBicara = false;
+                if(btnElement) btnElement.innerHTML = '📢 Bacakan';
+            };
+
+            if(btnElement) btnElement.innerHTML = '⏹️ Hentikan Suara';
+            
+            window.speechSynthesis.speak(robot);
+            robotBicara = true;
         }
 
         function toggleVideo(idMap) {

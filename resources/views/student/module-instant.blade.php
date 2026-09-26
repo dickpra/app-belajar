@@ -177,9 +177,16 @@
                             </div>
 
                             <div class="flex flex-wrap items-center justify-center gap-4 mb-8">
-                                <button type="button" onclick="bacakanTeks(`{{ strip_tags($slide['data']['konten_tahapan'] ?? '') }}`)" class="btn-3d bg-blue-100 text-blue-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-blue-300 border-b-[6px] shadow-sm">
+                                <button type="button" onclick="bacakanTeks(`{{ strip_tags($slide['data']['konten_tahapan'] ?? '') }}`, this)" class="btn-3d bg-blue-100 text-blue-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-blue-300 border-b-[6px] shadow-sm">
                                     📢 Bacakan
                                 </button>
+                                
+                                @if(!empty($slide['data']['voice_note']))
+                                <button type="button" onclick="putarVoiceNote('{{ route('private.audio', ['path' => $slide['data']['voice_note']]) }}', this)" class="btn-3d bg-emerald-100 text-emerald-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-emerald-300 border-b-[6px] shadow-sm">
+                                    🎙️ Pesan Suara Guru
+                                </button>
+                                @endif
+
                                 @if(!empty($slide['data']['sign_language_video']))
                                     <button type="button" onclick="toggleVideo('materi-{{ $index }}')" class="btn-3d bg-purple-100 text-purple-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-purple-300 border-b-[6px] shadow-sm">
                                         🤟 Lihat Isyarat
@@ -212,9 +219,16 @@
                             @endif
 
                             <div class="flex flex-wrap items-center justify-center gap-4 mb-8">
-                                <button type="button" onclick="bacakanTeks(`{{ strip_tags($question->question_text) }}`)" class="btn-3d bg-blue-100 text-blue-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-blue-300 border-b-[6px] shadow-sm">
+                                <button type="button" onclick="bacakanTeks(`{{ strip_tags($question->question_text) }}`, this)" class="btn-3d bg-blue-100 text-blue-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-blue-300 border-b-[6px] shadow-sm">
                                     📢 Bacakan Soal
                                 </button>
+                                
+                                @if(!empty($question->voice_note))
+                                <button type="button" onclick="putarVoiceNote('{{ route('private.audio', ['path' => $question->voice_note]) }}', this)" class="btn-3d bg-emerald-100 text-emerald-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-emerald-300 border-b-[6px] shadow-sm">
+                                    🎙️ Pesan Suara Guru
+                                </button>
+                                @endif
+
                                 @if(!empty($question->sign_language_video))
                                     <button type="button" onclick="toggleVideo('soal-{{ $index }}')" class="btn-3d bg-purple-100 text-purple-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-purple-300 border-b-[6px] shadow-sm">
                                         🤟 Lihat Isyarat
@@ -302,44 +316,118 @@
             else showSlide(currentIndex);
         });
 
-        function bacakanTeks(htmlTeks) {
+        let robotBicara = false;
+        // Variabel global untuk menampung instance audio guru
+        let guruAudio = null;
+
+        function bacakanTeks(htmlTeks, btnElement) {
             if (!('speechSynthesis' in window)) {
-                alert("Yah, browsermu belum mendukung fitur suara ini.");
+                showToast("Yah, browsermu belum mendukung fitur suara ini.");
                 return;
             }
             
-            window.speechSynthesis.cancel(); 
+            // Hentikan voice note guru jika sedang diputar
+            if (guruAudio && !guruAudio.paused) {
+                guruAudio.pause();
+                guruAudio.currentTime = 0;
+                document.querySelectorAll('button').forEach(btn => {
+                    if (btn.innerText.includes('Hentikan Suara Guru')) {
+                        btn.innerHTML = btn.innerHTML.replace('⏹️ Hentikan Suara Guru', '🎙️ Pesan Suara Guru');
+                    }
+                });
+            }
 
-            // 1. Ruang Virtual
+            // 👇 FITUR STOP/BERHENTI 👇
+            if (robotBicara) {
+                window.speechSynthesis.cancel();
+                robotBicara = false;
+                if(btnElement) {
+                    // Mengembalikan teks tombol sesuai dengan konteksnya
+                    if(btnElement.innerHTML.includes('Soal')) {
+                        btnElement.innerHTML = '📢 Bacakan Soal';
+                    } else {
+                        btnElement.innerHTML = '📢 Bacakan';
+                    }
+                }
+                return;
+            }
+
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = htmlTeks;
-
-            // 2. Buang tag jika masih ada
             const sampah = tempDiv.querySelectorAll('.attachment__name, .attachment__size');
             sampah.forEach(el => el.remove());
-
-            // 3. Ambil teks murni
             let teksBersih = tempDiv.innerText || tempDiv.textContent;
 
-            // 4. 👇 SENSOR SNIPER (HANYA MENGHAPUS POLA TRIX) 👇
             teksBersih = teksBersih
-                // Pola jitu: "nama_file.png 484.54 KB" atau "gambar.jpg"
                 .replace(/[a-zA-Z0-9_-]+\.(png|jpg|jpeg|gif|webp|svg)(\s+\d+([.,]\d+)?\s*(KB|MB|GB))?/gi, '')
-                
-                // 5. Terapi Artikulasi Robot
-                .replace(/&nbsp;/g, ' ')      
-                .replace(/[_]/g, ' ')          
-                .replace(/\s+/g, ' ')          
-                .replace(/([.!?])\s*(?=[a-zA-Z])/g, '$1 ') 
-                .trim();
+                .replace(/ /g, ' ').replace(/[_]/g, ' ').replace(/\s+/g, ' ')          
+                .replace(/([.!?])\s*(?=[a-zA-Z])/g, '$1 ').trim();
 
-            // 6. Eksekusi Suara
             const robot = new SpeechSynthesisUtterance(teksBersih);
             robot.lang = 'id-ID'; 
-            robot.rate = 0.9;  // Kecepatan santai
-            robot.pitch = 1.1; // Nada ramah
+            robot.rate = 0.9;  
+            robot.pitch = 1.1; 
+            
+            // Kembalikan tombol saat suara selesai
+            robot.onend = function() {
+                robotBicara = false;
+                if(btnElement) {
+                     if(btnElement.innerHTML.includes('Soal')) {
+                        btnElement.innerHTML = '📢 Bacakan Soal';
+                    } else {
+                        btnElement.innerHTML = '📢 Bacakan';
+                    }
+                }
+            };
+
+            if(btnElement) btnElement.innerHTML = '⏹️ Hentikan Suara';
             
             window.speechSynthesis.speak(robot);
+            robotBicara = true;
+        }
+
+        function putarVoiceNote(urlAudio, btnElement) {
+            // Hentikan suara robot TTS jika sedang bicara
+            if (robotBicara && window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+                robotBicara = false;
+                // Kembalikan semua tombol TTS ke keadaan semula
+                document.querySelectorAll('button').forEach(btn => {
+                    if (btn.innerText.includes('Hentikan Suara') && !btn.innerText.includes('Guru')) {
+                        if(btn.innerHTML.includes('Soal')) {
+                            btn.innerHTML = btn.innerHTML.replace('⏹️ Hentikan Suara', '📢 Bacakan Soal');
+                        } else {
+                            btn.innerHTML = btn.innerHTML.replace('⏹️ Hentikan Suara', '📢 Bacakan');
+                        }
+                    }
+                });
+            }
+
+            // Jika audio guru sedang diputar, hentikan
+            if (guruAudio && !guruAudio.paused) {
+                guruAudio.pause();
+                guruAudio.currentTime = 0;
+                if(btnElement) btnElement.innerHTML = '🎙️ Pesan Suara Guru';
+                return;
+            }
+
+            // Buat instance audio baru dan putar
+            guruAudio = new Audio(urlAudio);
+            
+            if(btnElement) {
+                btnElement.innerHTML = '⏹️ Hentikan Suara Guru';
+                
+                guruAudio.onend = function() {
+                    btnElement.innerHTML = '🎙️ Pesan Suara Guru';
+                };
+                
+                guruAudio.onerror = function() {
+                    showToast("Yah, gagal memuat pesan suara guru.");
+                    btnElement.innerHTML = '🎙️ Pesan Suara Guru';
+                };
+            }
+            
+            guruAudio.play();
         }
 
         function toggleVideo(idMap) {
@@ -366,6 +454,28 @@
             }
             document.getElementById('progress-bar').style.width = `${((index + 1) / totalSlides) * 100}%`;
             resetBottomBar(slidesData[index].type);
+            
+            // Hentikan semua audio jika berpindah slide
+            if (robotBicara && window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+                robotBicara = false;
+            }
+            if (guruAudio && !guruAudio.paused) {
+                guruAudio.pause();
+                guruAudio.currentTime = 0;
+            }
+             document.querySelectorAll('button').forEach(btn => {
+                if (btn.innerText.includes('Hentikan Suara Guru')) {
+                    btn.innerHTML = btn.innerHTML.replace('⏹️ Hentikan Suara Guru', '🎙️ Pesan Suara Guru');
+                }
+                 if (btn.innerText.includes('Hentikan Suara') && !btn.innerText.includes('Guru')) {
+                        if(btn.innerHTML.includes('Soal')) {
+                            btn.innerHTML = btn.innerHTML.replace('⏹️ Hentikan Suara', '📢 Bacakan Soal');
+                        } else {
+                            btn.innerHTML = btn.innerHTML.replace('⏹️ Hentikan Suara', '📢 Bacakan');
+                        }
+                    }
+            });
         }
 
         function resetBottomBar(type) {

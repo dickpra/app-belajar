@@ -187,18 +187,28 @@
                                     <!-- ========================================== -->
                                 <!-- TOMBOL BANTUAN MATERI (SUARA & ISYARAT) -->
                                 <!-- ========================================== -->
-                                @php $videoMateri = $stage['sign_language_video'] ?? null; @endphp
+                                @php 
+                                    $videoMateri = $stage['sign_language_video'] ?? null; 
+                                    $audioGuru = $stage['voice_note'] ?? null;
+                                @endphp
                                 
                                 <div class="flex flex-wrap items-center justify-center gap-3 mb-6">
                                     <!-- Tombol Suara -->
-                                    <button type="button" onclick="bacakanTeks(`{{ strip_tags($stage['konten_tahapan'] ?? '') }}`)" class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-2 px-4 rounded-full flex items-center gap-2 transition-all border-2 border-blue-300 shadow-sm active:translate-y-1">
-                                        <span class="text-xl">🔊</span> Bacakan Materi
-                                    </button>
+                                    <button type="button" onclick="bacakanTeks(`{{ strip_tags($stage['konten_tahapan'] ?? '') }}`, this)" class="btn-3d bg-blue-100 text-blue-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-blue-300 border-b-[6px] shadow-sm">
+                                            📢 Bacakan Soal
+                                        </button>
 
                                     <!-- Tombol Video Isyarat -->
                                     @if(!empty($videoMateri))
                                         <button type="button" onclick="toggleVideoMateri({{ $aIndex }}, {{ $sIndex }})" class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold py-2 px-4 rounded-full flex items-center gap-2 transition-all border-2 border-purple-300 shadow-sm active:translate-y-1">
                                             <span class="text-xl">🤟</span> Lihat Isyarat
+                                        </button>
+                                    @endif
+
+                                    <!-- Tombol Suara Guru -->
+                                    @if(!empty($audioGuru))
+                                        <button type="button" onclick="putarVoiceNote('{{ route('private.audio', ['path' => $audioGuru]) }}', this)" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold py-2 px-4 rounded-full flex items-center gap-2 transition-all border-2 border-emerald-300 shadow-sm active:translate-y-1">
+                                            <span class="text-xl">🔊</span> Bacakan Pesan Suara
                                         </button>
                                     @endif
                                 </div>
@@ -463,29 +473,118 @@
             if(window.innerWidth < 768) toggleSidebar();
         });
 
-        // ==========================================
-        // 🤖 MESIN ROBOT SUARA (TEXT-TO-SPEECH)
-        // ==========================================
-        function bacakanTeks(teks) {
-            // Cek apakah browser mendukung fitur suara
-            if ('speechSynthesis' in window) {
-                // Hentikan suara yang sedang berjalan (agar tidak tabrakan)
-                window.speechSynthesis.cancel(); 
-                
-                // Siapkan teksnya (bersihkan dari karakter aneh HTML jika ada)
-                const textBersih = teks.replace(/<[^>]*>?/gm, ''); 
-                const robot = new SpeechSynthesisUtterance(textBersih);
-                
-                // Setel ke logat Bahasa Indonesia
-                robot.lang = 'id-ID'; 
-                robot.rate = 0.9; // Kecepatan membaca (0.9 agar ramah anak/tidak terlalu cepat)
-                robot.pitch = 1.1; // Nada suara sedikit ditinggikan
-                
-                // Mulai bicara!
-                window.speechSynthesis.speak(robot);
-            } else {
-                showWarningToast("Maaf, browsermu belum mendukung fitur suara ini. 😔");
+        let robotBicara = false;
+        // Variabel global untuk menampung instance audio guru
+        let guruAudio = null;
+
+        function bacakanTeks(htmlTeks, btnElement) {
+            if (!('speechSynthesis' in window)) {
+                showToast("Yah, browsermu belum mendukung fitur suara ini.");
+                return;
             }
+            
+            // Hentikan voice note guru jika sedang diputar
+            if (guruAudio && !guruAudio.paused) {
+                guruAudio.pause();
+                guruAudio.currentTime = 0;
+                document.querySelectorAll('button').forEach(btn => {
+                    if (btn.innerText.includes('Hentikan Suara Guru')) {
+                        btn.innerHTML = btn.innerHTML.replace('⏹️ Hentikan Suara Guru', '🎙️ Pesan Suara Guru');
+                    }
+                });
+            }
+
+            // 👇 FITUR STOP/BERHENTI 👇
+            if (robotBicara) {
+                window.speechSynthesis.cancel();
+                robotBicara = false;
+                if(btnElement) {
+                    // Mengembalikan teks tombol sesuai dengan konteksnya
+                    if(btnElement.innerHTML.includes('Soal')) {
+                        btnElement.innerHTML = '📢 Bacakan Soal';
+                    } else {
+                        btnElement.innerHTML = '📢 Bacakan';
+                    }
+                }
+                return;
+            }
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlTeks;
+            const sampah = tempDiv.querySelectorAll('.attachment__name, .attachment__size');
+            sampah.forEach(el => el.remove());
+            let teksBersih = tempDiv.innerText || tempDiv.textContent;
+
+            teksBersih = teksBersih
+                .replace(/[a-zA-Z0-9_-]+\.(png|jpg|jpeg|gif|webp|svg)(\s+\d+([.,]\d+)?\s*(KB|MB|GB))?/gi, '')
+                .replace(/ /g, ' ').replace(/[_]/g, ' ').replace(/\s+/g, ' ')          
+                .replace(/([.!?])\s*(?=[a-zA-Z])/g, '$1 ').trim();
+
+            const robot = new SpeechSynthesisUtterance(teksBersih);
+            robot.lang = 'id-ID'; 
+            robot.rate = 0.9;  
+            robot.pitch = 1.1; 
+            
+            // Kembalikan tombol saat suara selesai
+            robot.onend = function() {
+                robotBicara = false;
+                if(btnElement) {
+                     if(btnElement.innerHTML.includes('Soal')) {
+                        btnElement.innerHTML = '📢 Bacakan Soal';
+                    } else {
+                        btnElement.innerHTML = '📢 Bacakan';
+                    }
+                }
+            };
+
+            if(btnElement) btnElement.innerHTML = '⏹️ Hentikan Suara';
+            
+            window.speechSynthesis.speak(robot);
+            robotBicara = true;
+        }
+
+        function putarVoiceNote(urlAudio, btnElement) {
+            // Hentikan suara robot TTS jika sedang bicara
+            if (robotBicara && window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+                robotBicara = false;
+                // Kembalikan semua tombol TTS ke keadaan semula
+                document.querySelectorAll('button').forEach(btn => {
+                    if (btn.innerText.includes('Hentikan Suara') && !btn.innerText.includes('Guru')) {
+                        if(btn.innerHTML.includes('Soal')) {
+                            btn.innerHTML = btn.innerHTML.replace('⏹️ Hentikan Suara', '📢 Bacakan Soal');
+                        } else {
+                            btn.innerHTML = btn.innerHTML.replace('⏹️ Hentikan Suara', '📢 Bacakan');
+                        }
+                    }
+                });
+            }
+
+            // Jika audio guru sedang diputar, hentikan
+            if (guruAudio && !guruAudio.paused) {
+                guruAudio.pause();
+                guruAudio.currentTime = 0;
+                if(btnElement) btnElement.innerHTML = '🎙️ Pesan Suara Guru';
+                return;
+            }
+
+            // Buat instance audio baru dan putar
+            guruAudio = new Audio(urlAudio);
+            
+            if(btnElement) {
+                btnElement.innerHTML = '⏹️ Hentikan Suara Guru';
+                
+                guruAudio.onend = function() {
+                    btnElement.innerHTML = '🎙️ Pesan Suara Guru';
+                };
+                
+                guruAudio.onerror = function() {
+                    showToast("Yah, gagal memuat pesan suara guru.");
+                    btnElement.innerHTML = '🎙️ Pesan Suara Guru';
+                };
+            }
+            
+            guruAudio.play();
         }
 
         // ==========================================

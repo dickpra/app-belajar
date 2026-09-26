@@ -67,9 +67,9 @@
             <div class="absolute -top-20 inset-x-0 flex justify-center z-30">
                 <!-- Elemen dalam: hanya untuk animasi -->
                 <div class="floating-avatar">
-                    <div class="w-32 h-32 bg-yellow-300 rounded-full border-[6px] border-white shadow-[0_8px_0_#ca8a04] avatar-circle">
-                        <img src="https://api.dicebear.com/9.x/fun-emoji/svg?seed={{ session('student_name') ?? 'Mukidi' }}&backgroundColor=transparent" 
-                         alt="Avatar" class="w-24 h-24 object-contain">
+                    <div class="flex items-center justify-center w-32 h-32 bg-green-300 rounded-full border-[6px] border-white shadow-[0_8px_0_#ca8a04] avatar-circle overflow-hidden">
+                        <img src="https://api.dicebear.com/10.x/critters/svg?borderRadius=50&seed=dcs1fdmk{{ session('student_name') ?? 'Mukidi' }}" 
+                        alt="Avatar" class="w-24 h-24 object-contain">
                     </div>
                 </div>
             </div>

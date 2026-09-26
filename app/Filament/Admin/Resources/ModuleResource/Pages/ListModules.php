@@ -31,7 +31,7 @@ class ListModules extends ListRecords
                     Forms\Components\FileUpload::make('zip_file')
                         ->label('Upload File ZIP Modul')
                         ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed'])
-                        ->disk('local') // Simpan sementara di storage/app/
+                        ->disk('local') 
                         ->directory('temp_import')
                         ->required(),
                 ])
@@ -47,7 +47,18 @@ class ListModules extends ListRecords
                         $jsonFile = $extractPath . '/data_modul.json';
                         
                         if (File::exists($jsonFile)) {
-                            $moduleData = json_decode(File::get($jsonFile), true);
+                            
+                            // 👇 1. TARIK TEKS MENTAH JSON 👇
+                            $rawJson = File::get($jsonFile);
+                            
+                            // 👇 2. MESIN ADAPTOR URL OTOMATIS 👇
+                            // Mendeteksi semua link gambar/video lama (seperti http://127.0.0.1/private-image...) 
+                            // lalu menggantinya dengan URL aplikasi yang sedang berjalan sekarang secara dinamis!
+                            $currentUrl = rtrim(config('app.url'), '/');
+                            $rawJson = preg_replace('/https?:\/\/[^\/]+\/private-(image|video)/i', $currentUrl . '/private-$1', $rawJson);
+                            
+                            // 👇 3. UBAH JADI ARRAY SETELAH URLNYA BERSIH 👇
+                            $moduleData = json_decode($rawJson, true);
 
                             // 1. Buat Modul Utama
                             $newModule = Module::create([
@@ -56,6 +67,7 @@ class ListModules extends ListRecords
                                 'access_pin' => $moduleData['access_pin'] ?? null,
                                 'is_adaptive' => $moduleData['is_adaptive'] ?? false,
                                 'is_active' => false, // Set Draft untuk keamanan
+                                'is_instant_mode' => $moduleData['is_instant_mode'] ?? false, // Jangan lupa mode instan dibawa juga!
                             ]);
 
                             // 2. Pindahkan folder 'files' dari dalam ZIP ke folder sistem asli
@@ -68,6 +80,7 @@ class ListModules extends ListRecords
                                 foreach ($moduleData['activities'] as $actData) {
                                     $newActivity = $newModule->activities()->create([
                                         'title' => $actData['title'],
+                                        'description' => $actData['description'] ?? null,
                                         'assessment_metrics' => $actData['assessment_metrics'],
                                         'stages' => is_array($actData['stages']) ? $actData['stages'] : json_decode($actData['stages'], true),
                                     ]);
@@ -76,7 +89,7 @@ class ListModules extends ListRecords
                                         foreach ($actData['questions'] as $qData) {
                                             $newActivity->questions()->create([
                                                 'answer_format' => $qData['answer_format'],
-                                                'layout_position' => $qData['layout_position'],
+                                                'layout_position' => $qData['layout_position'] ?? 'bottom',
                                                 'difficulty' => $qData['difficulty'],
                                                 'question_text' => $qData['question_text'],
                                                 'image' => $qData['image'],
@@ -98,7 +111,7 @@ class ListModules extends ListRecords
 
                             Notification::make()
                                 ->title('Modul Berhasil Diimpor!')
-                                ->body('Seluruh tahapan, soal, dan gambar berhasil dipulihkan.')
+                                ->body('Seluruh tahapan, soal, dan gambar berhasil dipulihkan dengan URL baru.')
                                 ->success()
                                 ->send();
 

@@ -7,7 +7,6 @@ use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
-use AmidEsfahani\FilamentTinyEditor\TinyEditor;
 use Illuminate\Support\Str;
 use Illuminate\Support\HtmlString;
 
@@ -16,28 +15,42 @@ class ActivitiesRelationManager extends RelationManager
     protected static string $relationship = 'activities';
     protected static ?string $title = 'Manajemen Aktivitas & Evaluasi';
 
-    // 👇 MESIN PEMBERSIH UTAMA (Dipanggil oleh semua Satpam di bawah) 👇
+    // 👇 1. SIHIR TAMPIL GAMBAR DI ADMIN (Diperbarui untuk menjebol JSON Trix) 👇
+    protected static function renderAdminImages(?string $html): ?string
+    {
+        if (!$html) return $html;
+        
+        $currentUrl = rtrim(config('app.url'), '/');
+        $privateUrl = $currentUrl . '/private-image/modul_private/';
+        
+        // 1. Kembalikan ke murni dulu (mencegah tumpuk-menumpuk URL)
+        $html = str_replace($privateUrl, 'modul_private/', $html);
+        
+        // 2. Tembak langsung string 'modul_private/' agar atribut src="" DAN JSON data-trix-attachment 
+        // dua-duanya ikut berubah menjadi URL penuh yang bisa dibaca editor.
+        $html = str_replace('modul_private/', $privateUrl, $html);
+
+        return $html;
+    }
+
+    // 👇 2. MESIN PEMBERSIH UTAMA TRIX (Diperbarui) 👇
     protected static function cleanTrixHTML(?string $html): ?string
     {
         if (!$html) return $html;
 
-        // 1. JURUS PAMUNGKAS (NUKE):
-        // Cari tag <figcaption> yang di dalamnya mengandung 'attachment__name' atau 'attachment__size'.
-        // Jika ketemu, hapus KESELURUHAN <figcaption>-nya sekalian sampai ke akar-akarnya!
+        // 👇 KEMBALIKAN URL KE BENTUK RELATIF SEBELUM MASUK DATABASE 👇
+        $currentUrl = rtrim(config('app.url'), '/');
+        // Hapus domain app + /private-image/ sehingga tersisa "modul_private/..." saja
+        $html = str_replace($currentUrl . '/private-image/', '', $html);
+
+        // Hapus sampah Figcaption Trix
         $html = preg_replace('/<figcaption[^>]*>.*?attachment__(name|size).*?<\/figcaption>/is', '', $html);
-
-        // 2. Jaga-jaga jika span nama/size-nya entah bagaimana berada di luar figcaption
         $html = preg_replace('/<[^>]*attachment__(name|size)[^>]*>.*?<\/[a-z0-9]+>/is', '', $html);
-
-        // 3. Bersihkan titik pemisah yang sering nempel " · " atau "&middot;"
         $html = str_replace([' · ', '·', '&middot;'], '', $html);
-
-        // 4. Hapus figcaption yang terlanjur kosong
         $html = preg_replace('/<figcaption[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/figcaption>/is', '', $html);
 
         return $html;
     }
-    // 👆 ========================================================== 👆
 
     public function form(Form $form): Form
     {
@@ -54,6 +67,19 @@ class ActivitiesRelationManager extends RelationManager
                             Forms\Components\TextInput::make('title')
                                 ->required()
                                 ->label('Judul Aktivitas (Misal: Aktivitas 1: Mengamati Benda)'),
+
+                            Forms\Components\RichEditor::make('description')
+                                ->label('Deskripsi / Pengantar Aktivitas (Opsional)')
+                                ->fileAttachmentsDisk('modul_rahasia')
+                                ->fileAttachmentsVisibility('private')
+                                ->fileAttachmentsDirectory(function (RelationManager $livewire, Forms\Get $get) {
+                                    $modul = Str::slug($livewire->getOwnerRecord()->title ?? 'modul');
+                                    $aktivitas = Str::slug($get('title') ?? 'aktivitas');
+                                    return "modul_private/{$modul}/{$aktivitas}/deskripsi";
+                                })
+                                // 👇 Terapkan Sihir Tampil Gambar 👇
+                                ->formatStateUsing(fn (?string $state): ?string => self::renderAdminImages($state))
+                                ->columnSpanFull(),
 
                             Forms\Components\Section::make('Metrik Penilaian (Dashboard Guru)')
                                 ->description('Centang kemampuan yang diukur pada aktivitas ini sesuai matriks kurikulum.')
@@ -86,17 +112,6 @@ class ActivitiesRelationManager extends RelationManager
                         ->schema([
                             Forms\Components\Repeater::make('stages')
                                 ->label('Materi Sebelum Soal')
-                                // 👇 SATPAM BEDAH PRESISI (MATERI) 👇
-                                ->dehydrateStateUsing(function (?array $state): ?array {
-                                    if (!$state) return $state;
-                                    foreach ($state as $key => $item) {
-                                        if (isset($item['konten_tahapan'])) {
-                                            $state[$key]['konten_tahapan'] = self::cleanTrixHTML($item['konten_tahapan']);
-                                        }
-                                    }
-                                    return $state;
-                                })
-                                // 👆 ================================ 👆
                                 ->schema([
                                     Forms\Components\Select::make('tipe_tahapan')
                                         ->label('Ikon & Judul Tahapan')
@@ -107,6 +122,7 @@ class ActivitiesRelationManager extends RelationManager
                                             'diskusi'   => '💬 Ruang Diskusi',
                                             'simpulkan' => '💡 Mari Menyimpulkan',
                                             'materi'    => '📖 Bacaan Materi',
+                                            'konsep'    => '📚 Konsep Penting',
                                         ])->required(),
 
                                     Forms\Components\FileUpload::make('sign_language_video')
@@ -119,16 +135,29 @@ class ActivitiesRelationManager extends RelationManager
                                         })
                                         ->acceptedFileTypes(['video/mp4', 'video/webm'])
                                         ->maxSize(10240),
+
+                                    Forms\Components\FileUpload::make('voice_note')
+                                        ->label('🎤 Voice Note')
+                                        ->disk('modul_rahasia')->visibility('private')
+                                        ->directory(function (RelationManager $livewire, Forms\Get $get) {
+                                            $modul = Str::slug($livewire->getOwnerRecord()->title ?? 'modul');
+                                            $aktivitas = Str::slug($get('../../title') ?? 'aktivitas');
+                                            return "modul_private/{$modul}/{$aktivitas}/voicenote";
+                                        })
+                                        ->acceptedFileTypes(['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm', 'video/mp4']) 
+                                        ->maxSize(10240),
                                         
                                     Forms\Components\RichEditor::make('konten_tahapan')
                                         ->label('Isi Materi (Teks & Gambar)')
                                         ->fileAttachmentsDisk('modul_rahasia')
                                         ->fileAttachmentsVisibility('private')
                                         ->fileAttachmentsDirectory(function (RelationManager $livewire, Forms\Get $get) {
-                                            $modul = \Illuminate\Support\Str::slug($livewire->getOwnerRecord()->title ?? 'modul');
-                                            $aktivitas = \Illuminate\Support\Str::slug($get('../../title') ?? 'aktivitas');
+                                            $modul = Str::slug($livewire->getOwnerRecord()->title ?? 'modul');
+                                            $aktivitas = Str::slug($get('../../title') ?? 'aktivitas');
                                             return "modul_private/{$modul}/{$aktivitas}/tahapan";
                                         })
+                                        // 👇 Terapkan Sihir Tampil Gambar 👇
+                                        ->formatStateUsing(fn (?string $state): ?string => self::renderAdminImages($state))
                                         ->required(),
                                 ])
                                 ->cloneable()->collapsible()->reorderableWithButtons()
@@ -186,7 +215,6 @@ class ActivitiesRelationManager extends RelationManager
                             Forms\Components\Repeater::make('questions')
                                 ->relationship('questions')
                                 ->label('Rentetan Soal (Ayo Berlatih)')
-                                // 👇 SATPAM BEDAH PRESISI (CREATE SOAL BARU) 👇
                                 ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
                                     foreach (['question_text', 'answer_explanation'] as $field) {
                                         if (isset($data[$field])) {
@@ -195,7 +223,6 @@ class ActivitiesRelationManager extends RelationManager
                                     }
                                     return $data;
                                 })
-                                // 👇 SATPAM BEDAH PRESISI (UPDATE SOAL LAMA) 👇
                                 ->mutateRelationshipDataBeforeSaveUsing(function (array $data): array {
                                     foreach (['question_text', 'answer_explanation'] as $field) {
                                         if (isset($data[$field])) {
@@ -204,7 +231,6 @@ class ActivitiesRelationManager extends RelationManager
                                     }
                                     return $data;
                                 })
-                                // 👆 ========================================= 👆
                                 ->schema([
                                     Forms\Components\Grid::make(3)->schema([
                                         
@@ -234,6 +260,17 @@ class ActivitiesRelationManager extends RelationManager
                                                     ->acceptedFileTypes(['video/mp4', 'video/webm'])->maxSize(10240),
                                             ]),
 
+                                            Forms\Components\FileUpload::make('voice_note')
+                                                    ->label('🎤 Voice Note')
+                                                    ->disk('modul_rahasia')->visibility('private')
+                                                    ->directory(function (RelationManager $livewire, Forms\Get $get) {
+                                                        $modul = Str::slug($livewire->getOwnerRecord()->title ?? 'modul');
+                                                        $aktivitas = Str::slug($get('../../title') ?? 'aktivitas');
+                                                        return "modul_private/{$modul}/{$aktivitas}/voicenote";
+                                                    })
+                                                    ->acceptedFileTypes(['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm', 'video/mp4']) 
+                                                    ->maxSize(10240),
+
                                             Forms\Components\RichEditor::make('question_text')
                                                 ->label('Teks Pertanyaan (Bisa sisip gambar)')
                                                 ->fileAttachmentsDisk('modul_rahasia')
@@ -243,6 +280,8 @@ class ActivitiesRelationManager extends RelationManager
                                                     $aktivitas = Str::slug($get('../../title') ?? 'aktivitas');
                                                     return "modul_private/{$modul}/{$aktivitas}/soal_sisipan";
                                                 })
+                                                // 👇 Terapkan Sihir Tampil Gambar 👇
+                                                ->formatStateUsing(fn (?string $state): ?string => self::renderAdminImages($state))
                                                 ->toolbarButtons(['bold', 'italic', 'underline', 'strike', 'link', 'h3', 'bulletList', 'orderedList', 'attachFiles'])
                                                 ->required(),
                                         ]),
@@ -286,6 +325,8 @@ class ActivitiesRelationManager extends RelationManager
 
                                             Forms\Components\RichEditor::make('answer_explanation')
                                                 ->label('Pembahasan Jawaban (Opsional)')
+                                                // 👇 Terapkan Sihir Tampil Gambar 👇
+                                                ->formatStateUsing(fn (?string $state): ?string => self::renderAdminImages($state))
                                                 ->toolbarButtons(['bold', 'italic', 'underline', 'bulletList', 'orderedList']),
                                         ])->collapsible()->collapsed(false),
 
@@ -332,10 +373,39 @@ class ActivitiesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('title')->label('Nama Aktivitas'),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make()->label('+ Tambah Aktivitas')->modalWidth('7xl'),
+                Tables\Actions\CreateAction::make()
+                    ->label('+ Tambah Aktivitas')
+                    ->modalWidth('7xl')
+                    ->mutateFormDataUsing(function (array $data): array {
+                        if (isset($data['description'])) {
+                            $data['description'] = self::cleanTrixHTML($data['description']);
+                        }
+                        if (isset($data['stages']) && is_array($data['stages'])) {
+                            foreach ($data['stages'] as $key => $item) {
+                                if (isset($item['konten_tahapan'])) {
+                                    $data['stages'][$key]['konten_tahapan'] = self::cleanTrixHTML($item['konten_tahapan']);
+                                }
+                            }
+                        }
+                        return $data;
+                    }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()->modalWidth('7xl'),
+                Tables\Actions\EditAction::make()
+                    ->modalWidth('7xl')
+                    ->mutateFormDataUsing(function (array $data): array {
+                        if (isset($data['description'])) {
+                            $data['description'] = self::cleanTrixHTML($data['description']);
+                        }
+                        if (isset($data['stages']) && is_array($data['stages'])) {
+                            foreach ($data['stages'] as $key => $item) {
+                                if (isset($item['konten_tahapan'])) {
+                                    $data['stages'][$key]['konten_tahapan'] = self::cleanTrixHTML($item['konten_tahapan']);
+                                }
+                            }
+                        }
+                        return $data;
+                    }),
                 Tables\Actions\DeleteAction::make(),
             ]);
     }

@@ -52,6 +52,7 @@ class TeacherPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
+                \App\Http\Middleware\RedirectWrongPanel::class,
                 Authenticate::class,
             ]);
     }
