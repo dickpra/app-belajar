@@ -52,10 +52,12 @@ class ListModules extends ListRecords
                             $rawJson = File::get($jsonFile);
                             
                             // 👇 2. MESIN ADAPTOR URL OTOMATIS 👇
-                            // Mendeteksi semua link gambar/video lama (seperti http://127.0.0.1/private-image...) 
+                            // Mendeteksi semua link gambar/video/audio lama (seperti http://127.0.0.1/private-image...) 
                             // lalu menggantinya dengan URL aplikasi yang sedang berjalan sekarang secara dinamis!
                             $currentUrl = rtrim(config('app.url'), '/');
-                            $rawJson = preg_replace('/https?:\/\/[^\/]+\/private-(image|video)/i', $currentUrl . '/private-$1', $rawJson);
+                            
+                            // PERBAIKAN: Tambahkan 'audio' ke dalam deteksi regex
+                            $rawJson = preg_replace('/https?:\/\/[^\/]+\/private-(image|video|audio)/i', $currentUrl . '/private-$1', $rawJson);
                             
                             // 👇 3. UBAH JADI ARRAY SETELAH URLNYA BERSIH 👇
                             $moduleData = json_decode($rawJson, true);
@@ -92,12 +94,13 @@ class ListModules extends ListRecords
                                                 'layout_position' => $qData['layout_position'] ?? 'bottom',
                                                 'difficulty' => $qData['difficulty'],
                                                 'question_text' => $qData['question_text'],
-                                                'image' => $qData['image'],
-                                                'sign_language_video' => $qData['sign_language_video'],
-                                                'correct_answer' => $qData['correct_answer'],
-                                                'true_false_answer' => $qData['true_false_answer'],
-                                                'correction_text' => $qData['correction_text'],
-                                                'answer_explanation' => $qData['answer_explanation'],
+                                                'image' => $qData['image'] ?? null,
+                                                'sign_language_video' => $qData['sign_language_video'] ?? null,
+                                                'voice_note' => $qData['voice_note'] ?? null, // 👈 TAMBAHAN: Tarik data voice note
+                                                'correct_answer' => $qData['correct_answer'] ?? null,
+                                                'true_false_answer' => $qData['true_false_answer'] ?? null,
+                                                'correction_text' => $qData['correction_text'] ?? null,
+                                                'answer_explanation' => $qData['answer_explanation'] ?? null,
                                                 'options' => is_array($qData['options']) ? $qData['options'] : json_decode($qData['options'], true),
                                             ]);
                                         }

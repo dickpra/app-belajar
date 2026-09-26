@@ -172,35 +172,35 @@ Route::get('/private-audio/{path}', function ($path) {
     ]);
 })->where('path', '.*')->name('private.audio');
 
-// Route::get('/obati-gambar', function () {
-//     // $urlLama = 'http://127.0.0.1:8005';
-//     // $urlBaru = 'https://belajar.wfied.com';
-//     $urlLama = 'https://belajar.wfied.com';
-//     $urlBaru = 'http://127.0.0.1:8005';
+Route::get('/obati-gambar', function () {
+    // $urlLama = 'http://127.0.0.1:8005';
+    // $urlBaru = 'https://belajar.wfied.com';
+    $urlLama = 'https://belajar.wfied.com';
+    $urlBaru = 'http://127.0.0.1:8005';
 
-//     // 1. Obati Tabel Pertanyaan (Questions)
-//     $questions = DB::table('questions')->get();
-//     foreach($questions as $q) {
-//         DB::table('questions')->where('id', $q->id)->update([
-//             'question_text' => str_replace($urlLama, $urlBaru, $q->question_text ?? ''),
-//             'answer_explanation' => str_replace($urlLama, $urlBaru, $q->answer_explanation ?? '')
-//         ]);
-//     }
+    // 1. Obati Tabel Pertanyaan (Questions)
+    $questions = DB::table('questions')->get();
+    foreach($questions as $q) {
+        DB::table('questions')->where('id', $q->id)->update([
+            'question_text' => str_replace($urlLama, $urlBaru, $q->question_text ?? ''),
+            'answer_explanation' => str_replace($urlLama, $urlBaru, $q->answer_explanation ?? '')
+        ]);
+    }
 
-//     // 2. Obati Tabel Aktivitas (Activities)
-//     $activities = DB::table('activities')->get();
-//     foreach($activities as $a) {
-//         $updatedData = [
-//             'description' => str_replace($urlLama, $urlBaru, $a->description ?? '')
-//         ];
+    // 2. Obati Tabel Aktivitas (Activities)
+    $activities = DB::table('activities')->get();
+    foreach($activities as $a) {
+        $updatedData = [
+            'description' => str_replace($urlLama, $urlBaru, $a->description ?? '')
+        ];
         
-//         // Obati JSON Stages jika ada isinya
-//         if (!empty($a->stages)) {
-//             $updatedData['stages'] = str_replace($urlLama, $urlBaru, $a->stages);
-//         }
+        // Obati JSON Stages jika ada isinya
+        if (!empty($a->stages)) {
+            $updatedData['stages'] = str_replace($urlLama, $urlBaru, $a->stages);
+        }
 
-//         DB::table('activities')->where('id', $a->id)->update($updatedData);
-//     }
+        DB::table('activities')->where('id', $a->id)->update($updatedData);
+    }
 
-//     return "🎉 Keajaiban selesai! Seluruh URL gambar di database telah diubah menjadi online.";
-// });
+    return "🎉 Keajaiban selesai! Seluruh URL gambar di database telah diubah menjadi online.";
+});

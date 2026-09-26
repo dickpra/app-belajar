@@ -102,10 +102,10 @@ class ModuleResource extends Resource
                             
                             $filesToZip = [];
 
-                            // Helper untuk mengekstrak path gambar dari dalam Rich Text Editor
+                            // Helper untuk mengekstrak path media dari dalam Rich Text Editor
                             $extractHtmlImages = function($html) use (&$filesToZip) {
                                 if (!$html) return;
-                                // Menangkap path yang mengandung 'modul_private'
+                                // Menangkap path yang mengandung 'modul_private' (termasuk gambar, video, dan audio/voice note)
                                 preg_match_all('/modul_private\/([a-zA-Z0-9\-\_\.\/]+)/', $html, $matches);
                                 if (!empty($matches[1])) {
                                     foreach ($matches[1] as $img) {
@@ -121,6 +121,10 @@ class ModuleResource extends Resource
                                 if (is_array($stages)) {
                                     foreach ($stages as $stage) {
                                         if (!empty($stage['sign_language_video'])) $filesToZip[] = $stage['sign_language_video'];
+                                        
+                                        // 👇 TANGKAP VOICE NOTE DI TAHAPAN MATERI 👇
+                                        if (!empty($stage['voice_note'])) $filesToZip[] = $stage['voice_note']; 
+
                                         if (!empty($stage['konten_tahapan'])) $extractHtmlImages($stage['konten_tahapan']);
                                     }
                                 }
@@ -129,6 +133,10 @@ class ModuleResource extends Resource
                                 foreach ($activity->questions as $question) {
                                     if (!empty($question->image)) $filesToZip[] = $question->image;
                                     if (!empty($question->sign_language_video)) $filesToZip[] = $question->sign_language_video;
+                                    
+                                    // 👇 TANGKAP VOICE NOTE DI SOAL 👇
+                                    if (!empty($question->voice_note)) $filesToZip[] = $question->voice_note;
+
                                     if (!empty($question->question_text)) $extractHtmlImages($question->question_text);
                                     if (!empty($question->answer_explanation)) $extractHtmlImages($question->answer_explanation);
 
@@ -137,6 +145,9 @@ class ModuleResource extends Resource
                                         foreach ($options as $opt) {
                                             if (!empty($opt['image_pilihan'])) $filesToZip[] = $opt['image_pilihan'];
                                             if (!empty($opt['image_matching_right'])) $filesToZip[] = $opt['image_matching_right'];
+                                            
+                                            // 👇 TANGKAP VOICE NOTE DI OPSI JAWABAN (Jika ada) 👇
+                                            if (!empty($opt['voice_note_pilihan'])) $filesToZip[] = $opt['voice_note_pilihan'];
                                         }
                                     }
                                 }
