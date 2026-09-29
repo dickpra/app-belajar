@@ -120,6 +120,8 @@ class ModuleResource extends Resource
                                 $stages = is_string($activity->stages) ? json_decode($activity->stages, true) : $activity->stages;
                                 if (is_array($stages)) {
                                     foreach ($stages as $stage) {
+
+                                        if (!empty($stage['image'])) $filesToZip[] = $stage['image'];
                                         if (!empty($stage['sign_language_video'])) $filesToZip[] = $stage['sign_language_video'];
                                         
                                         // 👇 TANGKAP VOICE NOTE DI TAHAPAN MATERI 👇
