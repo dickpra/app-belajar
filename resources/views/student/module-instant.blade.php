@@ -159,9 +159,18 @@
             <form id="instant-form" class="w-full h-full pb-10">
                 @foreach($slides as $index => $slide)
                     <!-- KARTU SOAL / MATERI -->
-                    <div id="slide-{{ $index }}" class="slide-card hidden w-full bubbly-card bg-white p-6 md:p-10 mb-8">
+                    <!-- Pastikan ada class "relative" di div ini agar tombol bisa ditaruh di pojok -->
+                    <div id="slide-{{ $index }}" class="slide-card hidden w-full bubbly-card bg-white p-6 md:p-10 mb-8 relative">
                         
-                        <div class="text-center mb-8">
+                        <!-- 👇 TAMBAHKAN TOMBOL KEMBALI DI SINI 👇 -->
+                        @if($index > 0)
+                            <button type="button" onclick="slideMundur()" class="absolute top-6 left-5 md:left-8 text-slate-400 hover:text-blue-500 font-black text-sm md:text-base flex items-center gap-1.5 transition-all z-20 hover:-translate-x-1">
+                                <span class="text-lg md:text-xl">⬅️</span> <span class="hidden md:inline">Kembali</span>
+                            </button>
+                        @endif
+                        <!-- 👆 ================================ 👆 -->
+
+                        <div class="text-center mb-8 mt-8 md:mt-0">
                             <span class="inline-block bg-slate-100 text-slate-500 font-black px-5 py-2 rounded-2xl text-sm uppercase tracking-widest border-4 border-slate-200 shadow-[0_4px_0_#e2e8f0]">
                                 🎯 {{ $slide['activity_title'] }}
                             </span>
@@ -296,7 +305,11 @@
 
                             <!-- 3. JAWABAN (OPSI / ISIAN / MENJODOHKAN) -->
                             <div class="mt-8 border-t-4 border-dashed border-slate-200 pt-8 max-w-2xl mx-auto w-full">
-                                @includeIf('student.tipe_soal.' . $question->answer_format, ['question' =>$question, 'existingAnswers' => [], 'isCompleted' => false])
+                                @includeIf('student.tipe_soal.' . $question->answer_format, [
+                                    'question' => $question, 
+                                    'existingAnswers' => $existingAnswers ?? [], 
+                                    'isCompleted' => $slide['is_answered'] ?? false
+                                ])
                             </div>
 
                         @endif
@@ -348,9 +361,15 @@
             }, 3500);
         }
         
+        // Membaca status jawaban dari database untuk dilempar ke otak JavaScript
         const slidesData = [
             @foreach($slides as $slide)
-                { type: '{{ $slide['type'] }}', id: {{ $slide['type'] == 'soal' ? $slide['data']->id : 'null' }} },
+                { 
+                    type: '{{ $slide['type'] }}', 
+                    id: {{ $slide['type'] == 'soal' ? $slide['data']->id : 'null' }},
+                    // 👇 INI KUNCI UTAMANYA: Pastikan JS tahu statusnya
+                    is_answered: {{ (isset($slide['is_answered']) && $slide['is_answered']) ? 'true' : 'false' }} 
+                },
             @endforeach
         ];
         const totalSlides = {{ $totalSlides }};
@@ -492,35 +511,70 @@
                 el.classList.add('hidden');
                 el.classList.remove('bounce-in');
             });
+            
             const target = document.getElementById(`slide-${index}`);
             if(target) {
                 target.classList.remove('hidden');
                 void target.offsetWidth;
                 target.classList.add('bounce-in');
+                
+                if(slidesData[index].type === 'soal') {
+                    
+                    if(slidesData[index].is_answered) {
+                        kunciForm(index);
+                    }
+
+                    // 👇 1. KOSONGKAN CANVAS SVG LAMA 👇
+                    let soalId = slidesData[index].id;
+                    let svg = document.getElementById(`svg-canvas-${soalId}`);
+                    if(svg) svg.innerHTML = ''; 
+
+                    // 👇 2. TUNGGU ANIMASI SELESAI (750ms) BARU GAMBAR GARIS 👇
+                    setTimeout(() => {
+                        let hiddenInput = document.getElementById(`ans-${soalId}`);
+                        if(hiddenInput && hiddenInput.value && hiddenInput.value !== '{}') {
+                            try {
+                                let rawVal = hiddenInput.value;
+                                let ans = typeof rawVal === 'string' ? JSON.parse(rawVal) : rawVal;
+                                if (typeof ans === 'string') ans = JSON.parse(ans); 
+                                
+                                for(let key in ans) {
+                                    let btnKiri = Array.from(document.querySelectorAll(`.btn-kiri-${soalId}`)).find(el => el.dataset.nilai == key);
+                                    let btnKanan = Array.from(document.querySelectorAll(`.btn-kanan-${soalId}`)).find(el => el.dataset.nilai == ans[key]);
+                                    
+                                    if(btnKiri && btnKanan) {
+                                        btnKanan.classList.add('border-green-500', 'bg-green-50', 'terjawab');
+                                        btnKanan.querySelector('.konektor-kanan').classList.replace('bg-slate-200', 'bg-green-500');
+                                        
+                                        btnKiri.classList.add('border-green-500', 'bg-green-50', 'terjawab');
+                                        btnKiri.classList.remove('border-blue-500', 'bg-blue-50', 'ring-4', 'ring-blue-100');
+                                        btnKiri.querySelector('.konektor-kiri').classList.replace('bg-slate-200', 'bg-green-500');
+                                        
+                                        gambarGarisSVG(btnKiri, btnKanan, soalId);
+                                    }
+                                }
+                            } catch(e) {}
+                        }
+                    }, 750); // Waktu tunggu ekstra agar kordinat sempurna
+                }
             }
+            
             document.getElementById('progress-bar').style.width = `${((index + 1) / totalSlides) * 100}%`;
             resetBottomBar(slidesData[index].type);
             
-            // Hentikan semua audio jika berpindah slide
-            if (robotBicara && window.speechSynthesis) {
-                window.speechSynthesis.cancel();
-                robotBicara = false;
-            }
-            if (guruAudio && !guruAudio.paused) {
-                guruAudio.pause();
-                guruAudio.currentTime = 0;
-            }
-             document.querySelectorAll('button').forEach(btn => {
-                if (btn.innerText.includes('Hentikan Suara Guru')) {
-                    btn.innerHTML = btn.innerHTML.replace('⏹️ Hentikan Suara Guru', '🎙️ Pesan Suara Guru');
-                }
-                 if (btn.innerText.includes('Hentikan Suara') && !btn.innerText.includes('Guru')) {
-                        if(btn.innerHTML.includes('Soal')) {
-                            btn.innerHTML = btn.innerHTML.replace('⏹️ Hentikan Suara', '📢 Bacakan Soal');
-                        } else {
-                            btn.innerHTML = btn.innerHTML.replace('⏹️ Hentikan Suara', '📢 Bacakan');
-                        }
-                    }
+            if (robotBicara && window.speechSynthesis) window.speechSynthesis.cancel();
+            if (guruAudio && !guruAudio.paused) guruAudio.pause();
+        }
+
+        // FUNGSI BARU UNTUK MENGUNCI KLIK
+        function kunciForm(index) {
+            const slideArea = document.getElementById(`slide-${index}`);
+            // Nonaktifkan semua input, textarea, dan radio
+            slideArea.querySelectorAll('input, textarea').forEach(el => el.disabled = true);
+            // Matikan fungsi klik pada tombol menjodohkan
+            slideArea.querySelectorAll('.btn-kiri-' + slidesData[index].id + ', .btn-kanan-' + slidesData[index].id).forEach(btn => {
+                btn.removeAttribute('onclick');
+                btn.classList.add('cursor-not-allowed', 'opacity-80');
             });
         }
 
@@ -538,9 +592,24 @@
                 btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-blue-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-blue-400 border-b-[8px] border-b-blue-700 uppercase tracking-wider';
                 btn.setAttribute('onclick', 'slideSelanjutnya()');
             } else {
-                btn.innerHTML = 'Cek Jawaban 🔍';
-                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-green-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-green-400 border-b-[8px] border-b-green-700 uppercase tracking-wider';
-                btn.setAttribute('onclick', 'cekJawaban()');
+                // 👇 JIKA JAVASCRIPT TAHU SOAL INI SUDAH DIJAWAB 👇
+                if (slidesData[currentIndex].is_answered) {
+                    bar.classList.add('bg-slate-100', 'border-slate-300');
+                    btn.innerHTML = '✅ Sudah Dinilai, Lanjut ➔';
+                    btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-slate-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-slate-400 border-b-[8px] border-b-slate-700 uppercase tracking-wider';
+                    
+                    // Paksa memanggil slide selanjutnya!
+                    btn.setAttribute('onclick', 'slideSelanjutnya()');
+                    
+                    // Pastikan input di form juga terkunci
+                    kunciForm(currentIndex);
+                } 
+                // JIKA BELUM DIJAWAB SAMA SEKALI
+                else {
+                    btn.innerHTML = 'Cek Jawaban 🔍';
+                    btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-green-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-green-400 border-b-[8px] border-b-green-700 uppercase tracking-wider';
+                    btn.setAttribute('onclick', 'cekJawaban()');
+                }
             }
         }
 
@@ -603,6 +672,11 @@
 
         function tampilkanHasil(data) {
             isChecking = true;
+            
+            // 👇 TANDAI SOAL INI SUDAH DIJAWAB AGAR TERKUNCI 👇
+            slidesData[currentIndex].is_answered = true; 
+            kunciForm(currentIndex); // Kunci formnya saat itu juga
+
             const bar = document.getElementById('bottom-bar');
             const feedback = document.getElementById('feedback-area');
             const btn = document.getElementById('btn-action');
@@ -630,6 +704,14 @@
                 document.getElementById('feedback-message').innerText = `Kunci: ${data.correct_answer || 'Tetap semangat, perhatikan lagi ya!'}`;
                 
                 btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-red-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-red-400 border-b-[8px] border-b-red-700 uppercase tracking-wider';
+                let currentQId = slidesData[currentIndex].id;
+                let kunciBlock = document.getElementById(`kunci-jawaban-${currentQId}`);
+                if(kunciBlock) {
+                    kunciBlock.classList.remove('hidden');
+                    // Beri sedikit efek animasi pop-up
+                    kunciBlock.classList.add('animate-pulse');
+                    setTimeout(() => kunciBlock.classList.remove('animate-pulse'), 1000);
+                }
             }
 
             btn.innerHTML = 'Lanjut ➔';
@@ -643,6 +725,14 @@
                 showSlide(currentIndex);
             } else {
                 akhiriLatihan();
+            }
+        }
+
+        // 👇 TAMBAHKAN FUNGSI MUNDUR INI 👇
+        function slideMundur() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                showSlide(currentIndex);
             }
         }
 
