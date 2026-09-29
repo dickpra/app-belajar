@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Filament\Support\Facades\FilamentView;
+use Illuminate\Support\Facades\URL;
+
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -17,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
 
    public function boot(): void
     {
+        // Paksa semua URL (termasuk Livewire) menggunakan HTTPS di lingkungan produksi
+        if (config('app.env') === 'production' || str_contains(config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
         // Menyuntikkan CSS langsung ke dalam <head> Filament
         \Filament\Support\Facades\FilamentView::registerRenderHook(
             'panels::head.end',

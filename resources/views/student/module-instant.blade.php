@@ -155,10 +155,10 @@
 
     <!-- AREA SLIDES -->
     <main class="flex-1 overflow-y-auto p-4 md:p-6 pb-48 no-scrollbar relative">
-        <div class="max-w-2xl mx-auto min-h-full flex flex-col justify-start w-full">
+        <div class="max-w-4xl mx-auto min-h-full flex flex-col justify-start w-full">
             <form id="instant-form" class="w-full h-full pb-10">
                 @foreach($slides as $index => $slide)
-                    <!-- KARTU SOAL -->
+                    <!-- KARTU SOAL / MATERI -->
                     <div id="slide-{{ $index }}" class="slide-card hidden w-full bubbly-card bg-white p-6 md:p-10 mb-8">
                         
                         <div class="text-center mb-8">
@@ -167,7 +167,9 @@
                             </span>
                         </div>
 
-                        <!-- JIKA INI SLIDE MATERI -->
+                        <!-- ===================================== -->
+                        <!-- JIKA INI SLIDE MATERI                 -->
+                        <!-- ===================================== -->
                         @if($slide['type'] === 'materi')
                             @php $style = getStageStyle($slide['data']['tipe_tahapan'] ?? 'materi'); @endphp
                             <div class="text-center mb-8">
@@ -176,83 +178,127 @@
                                 </span>
                             </div>
 
-                            <div class="flex flex-wrap items-center justify-center gap-4 mb-8">
-                                <button type="button" onclick="bacakanTeks(`{{ strip_tags($slide['data']['konten_tahapan'] ?? '') }}`, this)" class="btn-3d bg-blue-100 text-blue-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-blue-300 border-b-[6px] shadow-sm">
-                                    📢 Bacakan
+                            <!-- TAMPILAN GAMBAR MATERI (FLEXBOX CENTER) -->
+                            @if(!empty($slide['data']['image']))
+                                <div class="mb-8 flex justify-center w-full">
+                                    <img src="{{ route('private.image', ['path' => $slide['data']['image']]) }}" class="max-h-[350px] object-contain rounded-3xl border-4 border-slate-200 shadow-sm bg-slate-50 p-2">
+                                </div>
+                            @endif
+
+                            <div class="prose prose-blue prose-xl font-bold text-slate-700 mx-auto leading-relaxed w-full max-w-2xl text-center mb-8">
+                                {!! renderPrivateImages($slide['data']['konten_tahapan'] ?? '') !!}
+                            </div>
+
+                           <!-- TOMBOL BANTUAN MATERI (VERSI MOBILE COMPACT) -->
+                            <div class="flex flex-wrap items-center justify-center gap-2 md:gap-4 mb-4">
+                                <button type="button" onclick="bacakanTeks(`{{ strip_tags($slide['data']['konten_tahapan'] ?? '') }}`, this)" 
+                                    class="btn-3d bg-blue-100 text-blue-700 font-black text-xs md:text-base py-2 px-3 md:py-3 md:px-6 rounded-xl md:rounded-2xl flex items-center gap-1.5 md:gap-2 border-2 border-blue-300 border-b-[4px] md:border-b-[6px] shadow-sm">
+                                    <span class="text-sm md:text-xl">📢</span> Bacakan
                                 </button>
-                                
+
                                 @if(!empty($slide['data']['voice_note']))
-                                <button type="button" onclick="putarVoiceNote('{{ route('private.audio', ['path' => $slide['data']['voice_note']]) }}', this)" class="btn-3d bg-emerald-100 text-emerald-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-emerald-300 border-b-[6px] shadow-sm">
-                                    🎙️ Pesan Suara Guru
+                                <button type="button" onclick="putarVoiceNote('{{ route('private.audio', ['path' => $slide['data']['voice_note']]) }}', this)" 
+                                    class="btn-3d bg-emerald-100 text-emerald-700 font-black text-xs md:text-base py-2 px-3 md:py-3 md:px-6 rounded-xl md:rounded-2xl flex items-center gap-1.5 md:gap-2 border-2 border-emerald-300 border-b-[4px] md:border-b-[6px] shadow-sm">
+                                    <span class="text-sm md:text-xl">🎙️</span> Suara Guru
                                 </button>
                                 @endif
 
                                 @if(!empty($slide['data']['sign_language_video']))
-                                    <button type="button" onclick="toggleVideo('materi-{{ $index }}')" class="btn-3d bg-purple-100 text-purple-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-purple-300 border-b-[6px] shadow-sm">
-                                        🤟 Lihat Isyarat
+                                    <button type="button" onclick="toggleVideo('materi-{{ $index }}')" 
+                                        class="btn-3d bg-purple-100 text-purple-700 font-black text-xs md:text-base py-2 px-3 md:py-3 md:px-6 rounded-xl md:rounded-2xl flex items-center gap-1.5 md:gap-2 border-2 border-purple-300 border-b-[4px] md:border-b-[6px] shadow-sm">
+                                        <span class="text-sm md:text-xl">🤟</span> Isyarat
                                     </button>
                                 @endif
                             </div>
 
+                            <!-- POPUP VIDEO ISYARAT MATERI -->
                             @if(!empty($slide['data']['sign_language_video']))
-                                <div id="video-materi-{{ $index }}" class="hidden mb-8 relative rounded-[2rem] overflow-hidden border-4 border-purple-300 shadow-[0_8px_0_#d8b4fe] bg-black">
+                                <div id="video-materi-{{ $index }}" class="hidden relative rounded-[2rem] overflow-hidden border-4 border-purple-300 shadow-[0_8px_0_#d8b4fe] bg-black max-w-2xl mx-auto mt-6">
                                     <div class="bg-purple-100 px-5 py-3 flex justify-between items-center border-b-4 border-purple-300">
-                                        <span class="font-black text-purple-800 text-base flex items-center gap-2">🤟 Panduan Bahasa Isyarat</span>
+                                        <span class="font-black text-purple-800 text-base flex items-center gap-2">🤟 Panduan Isyarat</span>
                                         <button type="button" onclick="toggleVideo('materi-{{ $index }}')" class="text-red-500 hover:text-red-700 font-black text-2xl hover:scale-110 transition-transform">✖</button>
                                     </div>
                                     <video id="player-materi-{{ $index }}" controls class="w-full aspect-video"><source src="{{ route('private.video', ['path' => $slide['data']['sign_language_video']]) }}" type="video/mp4"></video>
                                 </div>
                             @endif
 
-                            <div class="prose prose-blue prose-xl font-bold text-slate-700 mx-auto leading-relaxed w-full max-w-full">
-                                {!! renderPrivateImages($slide['data']['konten_tahapan'] ?? '') !!}
-                            </div>
 
-                        <!-- JIKA INI SLIDE SOAL -->
+                        <!-- ===================================== -->
+                        <!-- JIKA INI SLIDE SOAL                   -->
+                        <!-- ===================================== -->
                         @elseif($slide['type'] === 'soal')
-                            @php $question = $slide['data']; @endphp
-                            
-                            @if(!empty($question->image))
-                                <div class="mb-8 flex justify-center bg-slate-50 p-4 rounded-3xl border-4 border-slate-200">
-                                    <img src="{{ route('private.image', ['path' => $question->image]) }}" class="max-h-72 object-contain rounded-2xl">
-                                </div>
-                            @endif
-
-                            <div class="flex flex-wrap items-center justify-center gap-4 mb-8">
-                                <button type="button" onclick="bacakanTeks(`{{ strip_tags($question->question_text) }}`, this)" class="btn-3d bg-blue-100 text-blue-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-blue-300 border-b-[6px] shadow-sm">
-                                    📢 Bacakan Soal
-                                </button>
+                            @php 
+                                $question =$slide['data']; 
+                                $layout =$question->layout_position ?? 'image_top';
                                 
+                                $flexClass = match($layout) {
+                                    'image_left'   => 'flex-col md:flex-row',
+                                    'image_right'  => 'flex-col md:flex-row-reverse',
+                                    'image_bottom' => 'flex-col-reverse',
+                                    default        => 'flex-col' // image_top
+                                };
+
+                                $isSideBySide = in_array($layout, ['image_left', 'image_right']);
+                            @endphp
+
+                            <!-- 1. TOMBOL MEDIA GURU SOAL (DIPINDAH KE PALING ATAS) -->
+                            <!-- 1. TOMBOL MEDIA GURU SOAL (VERSI MOBILE COMPACT) -->
+                            <div class="flex flex-wrap items-center justify-center gap-2 md:gap-4 mb-8 mt-2">
+                                <button type="button" onclick="bacakanTeks(`{{ strip_tags($question->question_text) }}`, this)" 
+                                    class="btn-3d bg-blue-100 text-blue-700 font-black text-xs md:text-base py-2 px-3 md:py-3 md:px-6 rounded-xl md:rounded-2xl flex items-center gap-1.5 md:gap-2 border-2 border-blue-300 border-b-[4px] md:border-b-[6px] shadow-sm">
+                                    <span class="text-sm md:text-xl">📢</span> Bacakan
+                                </button>
+
                                 @if(!empty($question->voice_note))
-                                <button type="button" onclick="putarVoiceNote('{{ route('private.audio', ['path' => $question->voice_note]) }}', this)" class="btn-3d bg-emerald-100 text-emerald-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-emerald-300 border-b-[6px] shadow-sm">
-                                    🎙️ Pesan Suara Guru
+                                <button type="button" onclick="putarVoiceNote('{{ route('private.audio', ['path' => $question->voice_note]) }}', this)" 
+                                    class="btn-3d bg-emerald-100 text-emerald-700 font-black text-xs md:text-base py-2 px-3 md:py-3 md:px-6 rounded-xl md:rounded-2xl flex items-center gap-1.5 md:gap-2 border-2 border-emerald-300 border-b-[4px] md:border-b-[6px] shadow-sm">
+                                    <span class="text-sm md:text-xl">🎙️️</span> Suara Guru
                                 </button>
                                 @endif
 
                                 @if(!empty($question->sign_language_video))
-                                    <button type="button" onclick="toggleVideo('soal-{{ $index }}')" class="btn-3d bg-purple-100 text-purple-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-purple-300 border-b-[6px] shadow-sm">
-                                        🤟 Lihat Isyarat
+                                    <button type="button" onclick="toggleVideo('soal-{{ $index }}')" 
+                                        class="btn-3d bg-purple-100 text-purple-700 font-black text-xs md:text-base py-2 px-3 md:py-3 md:px-6 rounded-xl md:rounded-2xl flex items-center gap-1.5 md:gap-2 border-2 border-purple-300 border-b-[4px] md:border-b-[6px] shadow-sm">
+                                        <span class="text-sm md:text-xl">🤟</span> Isyarat
                                     </button>
                                 @endif
                             </div>
 
+                            <!-- POPUP VIDEO ISYARAT SOAL -->
                             @if(!empty($question->sign_language_video))
-                                <div id="video-soal-{{ $index }}" class="hidden mb-8 relative rounded-[2rem] overflow-hidden border-4 border-purple-300 shadow-[0_8px_0_#d8b4fe] bg-black">
+                                <div id="video-soal-{{ $index }}" class="hidden mb-8 relative rounded-[2rem] overflow-hidden border-4 border-purple-300 shadow-[0_8px_0_#d8b4fe] bg-black max-w-2xl mx-auto">
                                     <div class="bg-purple-100 px-5 py-3 flex justify-between items-center border-b-4 border-purple-300">
-                                        <span class="font-black text-purple-800 text-base flex items-center gap-2">🤟 Panduan Bahasa Isyarat</span>
+                                        <span class="font-black text-purple-800 text-base flex items-center gap-2">🤟 Panduan Isyarat</span>
                                         <button type="button" onclick="toggleVideo('soal-{{ $index }}')" class="text-red-500 hover:text-red-700 font-black text-2xl hover:scale-110 transition-transform">✖</button>
                                     </div>
                                     <video id="player-soal-{{ $index }}" controls class="w-full aspect-video"><source src="{{ route('private.video', ['path' => $question->sign_language_video]) }}" type="video/mp4"></video>
                                 </div>
                             @endif
 
-                            <div class="prose prose-blue prose-2xl font-black text-slate-800 text-center mb-10 leading-relaxed mx-auto">
-                                {!! renderPrivateImages($question->question_text) !!}
+                            <!-- 2. KONTEN SOAL (FLEXBOX MAGIC) -->
+                            <div class="flex {{ $flexClass }} items-center justify-center gap-6 md:gap-10 mb-8 w-full">
+                                
+                                <!-- AREA GAMBAR UPLOAD -->
+                                @if(!empty($question->image))
+                                    <div class="w-full {{ $isSideBySide ? 'md:w-1/2' : 'max-w-2xl' }} flex justify-center shrink-0">
+                                        <img src="{{ route('private.image', ['path' => $question->image]) }}" class="max-h-[320px] w-auto object-contain rounded-3xl border-4 border-slate-200 shadow-sm bg-slate-50 p-2">
+                                    </div>
+                                @endif
+
+                                <!-- AREA TEKS SOAL (TRIX) -->
+                                <div class="w-full {{ $isSideBySide && !empty($question->image) ? 'md:w-1/2 text-left' : 'max-w-2xl text-center' }} flex flex-col justify-center">
+                                    <div class="prose prose-blue prose-2xl font-black text-slate-800 leading-relaxed mx-auto w-full">
+                                        {!! renderPrivateImages($question->question_text) !!}
+                                    </div>
+                                </div>
+
                             </div>
 
-                            <div class="mt-6">
-                                @includeIf('student.tipe_soal.' . $question->answer_format, ['question' => $question, 'existingAnswers' => [], 'isCompleted' => false])
+                            <!-- 3. JAWABAN (OPSI / ISIAN / MENJODOHKAN) -->
+                            <div class="mt-8 border-t-4 border-dashed border-slate-200 pt-8 max-w-2xl mx-auto w-full">
+                                @includeIf('student.tipe_soal.' . $question->answer_format, ['question' =>$question, 'existingAnswers' => [], 'isCompleted' => false])
                             </div>
+
                         @endif
                     </div>
                 @endforeach

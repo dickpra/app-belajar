@@ -124,7 +124,17 @@ class ActivitiesRelationManager extends RelationManager
                                             'materi'    => '📖 Bacaan Materi',
                                             'konsep'    => '📚 Konsep Penting',
                                         ])->required(),
-
+                                Forms\Components\Grid::make(3)->schema([
+                                    Forms\Components\FileUpload::make('image')
+                                            ->label('🖼️ Gambar Utama Materi')
+                                            ->image()->optimize('webp')->imageEditor()
+                                            ->disk('modul_rahasia')->visibility('private')
+                                            ->directory(function (RelationManager $livewire, Forms\Get $get) {
+                                                $modul = Str::slug($livewire->getOwnerRecord()->title ?? 'modul');
+                                                $aktivitas = Str::slug($get('../../title') ?? 'aktivitas');
+                                                return "modul_private/{$modul}/{$aktivitas}/tahapan_gambar";
+                                            }),
+                                            
                                     Forms\Components\FileUpload::make('sign_language_video')
                                         ->label('🤟 Video Bahasa Isyarat (Opsional)')
                                         ->disk('modul_rahasia')->visibility('private')
@@ -146,6 +156,7 @@ class ActivitiesRelationManager extends RelationManager
                                         })
                                         ->acceptedFileTypes(['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm', 'video/mp4']) 
                                         ->maxSize(10240),
+                                    ])->columns(3),
                                         
                                     Forms\Components\RichEditor::make('konten_tahapan')
                                         ->label('Isi Materi (Teks & Gambar)')
@@ -258,9 +269,8 @@ class ActivitiesRelationManager extends RelationManager
                                                         return "modul_private/{$modul}/{$aktivitas}/video_soal";
                                                     })
                                                     ->acceptedFileTypes(['video/mp4', 'video/webm'])->maxSize(10240),
-                                            ]),
 
-                                            Forms\Components\FileUpload::make('voice_note')
+                                                Forms\Components\FileUpload::make('voice_note')
                                                     ->label('🎤 Voice Note')
                                                     ->disk('modul_rahasia')->visibility('private')
                                                     ->directory(function (RelationManager $livewire, Forms\Get $get) {
@@ -270,7 +280,29 @@ class ActivitiesRelationManager extends RelationManager
                                                     })
                                                     ->acceptedFileTypes(['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm', 'video/mp4']) 
                                                     ->maxSize(10240),
+                                            ]),
 
+                                            Forms\Components\Grid::make(2)->schema([
+
+                                                Forms\Components\Select::make('layout_position')
+                                                ->options([
+                                                    // 'image_left'   => 'Gambar di Kiri',
+                                                    // 'image_right'  => 'Gambar di Kanan',
+                                                    'image_top'    => 'Gambar di Atas Soal',
+                                                    'image_bottom' => 'Gambar di Bawah Soal',
+                                                ])->default('image_top')->required()->label('Posisi Gambar'),
+
+
+                                                Forms\Components\FileUpload::make('image')
+                                                    ->image()->optimize('webp')->imageEditor()
+                                                    ->disk('modul_rahasia')->visibility('private')
+                                                    ->directory(function (RelationManager $livewire, Forms\Get $get) {
+                                                        $modul = Str::slug($livewire->getOwnerRecord()->title ?? 'modul');
+                                                        $aktivitas = Str::slug($get('../../title') ?? 'aktivitas');
+                                                        return "modul_private/{$modul}/{$aktivitas}/soal_thumbnail";
+                                                    })->label('Gambar Utama Soal'),
+
+                                            ]),
                                             Forms\Components\RichEditor::make('question_text')
                                                 ->label('Teks Pertanyaan (Bisa sisip gambar)')
                                                 ->fileAttachmentsDisk('modul_rahasia')
@@ -282,7 +314,7 @@ class ActivitiesRelationManager extends RelationManager
                                                 })
                                                 // 👇 Terapkan Sihir Tampil Gambar 👇
                                                 ->formatStateUsing(fn (?string $state): ?string => self::renderAdminImages($state))
-                                                ->toolbarButtons(['bold', 'italic', 'underline', 'strike', 'link', 'h3', 'bulletList', 'orderedList', 'attachFiles'])
+                                                // ->toolbarButtons(['bold', 'italic', 'underline', 'strike', 'link', 'h3', 'bulletList', 'orderedList', 'attachFiles'])
                                                 ->required(),
                                         ]),
                                     

@@ -184,35 +184,34 @@
                                 <h2 class="text-xl md:text-3xl font-black text-slate-800 text-center mb-6">{{ $activity->title }}</h2>
 
                                 <div class="bg-slate-50 rounded-2xl p-4 md:p-6 border-[3px] border-slate-200 mb-6">
-                                    <!-- ========================================== -->
-                                <!-- TOMBOL BANTUAN MATERI (SUARA & ISYARAT) -->
+                                <!-- ========================================== -->
+                                <!-- TOMBOL BANTUAN MATERI (VERSI MOBILE COMPACT) -->
                                 <!-- ========================================== -->
                                 @php 
-                                    $videoMateri = $stage['sign_language_video'] ?? null; 
-                                    $audioGuru = $stage['voice_note'] ?? null;
+                                    $videoMateri =$stage['sign_language_video'] ?? null; 
+                                    $audioGuru =$stage['voice_note'] ?? null;
                                 @endphp
                                 
-                                <div class="flex flex-wrap items-center justify-center gap-3 mb-6">
-                                    <!-- Tombol Suara -->
-                                    <button type="button" onclick="bacakanTeks(`{{ strip_tags($stage['konten_tahapan'] ?? '') }}`, this)" class="btn-3d bg-blue-100 text-blue-700 font-black py-3 px-6 rounded-2xl flex items-center gap-2 border-2 border-blue-300 border-b-[6px] shadow-sm">
-                                            📢 Bacakan Soal
-                                        </button>
+                                <div class="flex flex-wrap items-center justify-center gap-2 md:gap-4 mb-6">
+                                    <button type="button" onclick="bacakanTeks(`{{ strip_tags($stage['konten_tahapan'] ?? '') }}`, this)" 
+                                        class="btn-3d bg-blue-100 text-blue-700 font-black text-xs md:text-base py-2 px-3 md:py-3 md:px-6 rounded-xl md:rounded-2xl flex items-center gap-1.5 md:gap-2 border-2 border-blue-300 border-b-[4px] md:border-b-[6px] shadow-sm">
+                                        <span class="text-sm md:text-xl">📢</span> Bacakan
+                                    </button>
 
-                                    <!-- Tombol Video Isyarat -->
-                                    @if(!empty($videoMateri))
-                                        <button type="button" onclick="toggleVideoMateri({{ $aIndex }}, {{ $sIndex }})" class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold py-2 px-4 rounded-full flex items-center gap-2 transition-all border-2 border-purple-300 shadow-sm active:translate-y-1">
-                                            <span class="text-xl">🤟</span> Lihat Isyarat
+                                    @if(!empty($audioGuru))
+                                        <button type="button" onclick="putarVoiceNote('{{ route('private.audio', ['path' => $audioGuru]) }}', this)" 
+                                            class="btn-3d bg-emerald-100 text-emerald-700 font-black text-xs md:text-base py-2 px-3 md:py-3 md:px-6 rounded-xl md:rounded-2xl flex items-center gap-1.5 md:gap-2 border-2 border-emerald-300 border-b-[4px] md:border-b-[6px] shadow-sm">
+                                            <span class="text-sm md:text-xl">🎙️</span> Suara Guru
                                         </button>
                                     @endif
 
-                                    <!-- Tombol Suara Guru -->
-                                    @if(!empty($audioGuru))
-                                        <button type="button" onclick="putarVoiceNote('{{ route('private.audio', ['path' => $audioGuru]) }}', this)" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold py-2 px-4 rounded-full flex items-center gap-2 transition-all border-2 border-emerald-300 shadow-sm active:translate-y-1">
-                                            <span class="text-xl">🔊</span> Bacakan Pesan Suara
+                                    @if(!empty($videoMateri))
+                                        <button type="button" onclick="toggleVideoMateri({{ $aIndex }}, {{$sIndex }})" 
+                                            class="btn-3d bg-purple-100 text-purple-700 font-black text-xs md:text-base py-2 px-3 md:py-3 md:px-6 rounded-xl md:rounded-2xl flex items-center gap-1.5 md:gap-2 border-2 border-purple-300 border-b-[4px] md:border-b-[6px] shadow-sm">
+                                            <span class="text-sm md:text-xl">🤟</span> Isyarat
                                         </button>
                                     @endif
                                 </div>
-
                                 <!-- CONTAINER VIDEO MATERI (Tersembunyi) -->
                                 @if(!empty($videoMateri))
                                     <div id="video-materi-{{ $aIndex }}-{{ $sIndex }}" class="hidden mb-6 mx-auto relative rounded-2xl overflow-hidden border-4 border-purple-300 shadow-md bg-slate-900 transition-all duration-300 w-full max-w-lg">
@@ -227,12 +226,21 @@
                                     </div>
                                 @endif
 
-                                <!-- KOTAK ISI MATERI -->
-                                <div class="bg-slate-50 rounded-2xl p-4 md:p-6 border-[3px] border-slate-200 mb-6">
-                                    <div class="prose prose-blue text-slate-700 mx-auto font-bold leading-relaxed w-full max-w-full">
-                                        {!! renderPrivateImages($stage['konten_tahapan'] ?? '') !!}
+                                <!-- ========================================== -->
+                                <!-- 👇 TAMPILAN GAMBAR MATERI (BARU) 👇        -->
+                                <!-- ========================================== -->
+                                @if(!empty($stage['image']))
+                                    <div class="mb-6 flex justify-center bg-white p-3 rounded-2xl border-[3px] border-slate-200 mx-auto w-full shadow-sm">
+                                        <img src="{{ route('private.image', ['path' => $stage['image']]) }}" class="max-h-[350px] object-contain rounded-xl w-full">
                                     </div>
-                                </div>
+                                @endif
+
+                                <!-- KOTAK ISI MATERI -->
+                                    <div class="bg-slate-50 rounded-2xl p-4 md:p-6 border-[3px] border-slate-200 mb-6">
+                                        <div class="prose prose-blue text-slate-700 mx-auto font-bold leading-relaxed w-full max-w-full text-center">
+                                            {!! renderPrivateImages($stage['konten_tahapan'] ?? '') !!}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <button onclick="slideLanjut({{ $aIndex }}, {{ $sIndex }}, {{ $totalStages }})" 
