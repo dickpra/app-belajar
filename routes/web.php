@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
+
 // ========================================================
 // MESIN PENYANDI URL (FUNGSI HELPER GLOBAL KEBAL ERROR)
 // ========================================================
@@ -47,14 +49,6 @@ Route::bind('hash_modul', function ($value) {
     
     return $realId;
 });
-
-// 🧠 SIHIR ROUTE BINDING: Setiap ada {hash_modul} di URL, otomatis diterjemahkan jadi ID asli untuk Controller!
-Route::bind('hash_modul', function ($value) {
-    $realId = buka_id($value);
-    if (!$realId) abort(404, 'Hayo, jangan iseng ganti-ganti URL ya! 🧐');
-    return $realId;
-});
-
 
 // ========================================================
 // AREA AUTENTIKASI MURID (Halaman Depan)
@@ -147,7 +141,33 @@ Route::prefix('ruang-belajar')->middleware([CekLoginMurid::class])->group(functi
 
     Route::get('/panduan', function () { return view('student.panduan'); })->name('student.panduan');
     Route::get('/profil', function () { return view('student.profil'); })->name('student.profil');
+
+    // ========================================================
+    // RUTE BARU UCAPAN GURU
+    // ========================================================
+    Route::get('/ucapan', function () { 
+        $ucapan = "Tetap semangat belajarnya ya! Jangan takut salah saat menjawab soal, karena dari kesalahan kita jadi tahu jawaban yang benar. Kalian luar biasa!";
+        
+        $filePath = storage_path('app/ucapan_guru.txt');
+        if (File::exists($filePath)) {
+            $ucapan = File::get($filePath);
+        }
+
+        return view('student.ucapan-guru', compact('ucapan')); 
+    })->name('student.ucapan');
 });
+
+// ========================================================
+// RUTE ADMIN UCAPAN GURU (OPSIONAL UNTUK SIMPAN)
+// ========================================================
+// Jika Anda ingin Admin bisa mengubah teks melalui form sederhana, Anda dapat 
+// menambahkan rute POST untuk menyimpannya ke file teks.
+Route::post('/admin/ucapan/simpan', function(Request $request) {
+    $request->validate(['ucapan' => 'required|string']);
+    File::put(storage_path('app/ucapan_guru.txt'), $request->ucapan);
+    return back()->with('success', 'Ucapan berhasil diperbarui!');
+})->name('admin.ucapan.simpan');
+
 
 Route::get('/private-video/{path}', function ($path) {
     if (!Storage::disk('modul_rahasia')->exists($path)) { abort(404, 'Video tidak ditemukan.'); }

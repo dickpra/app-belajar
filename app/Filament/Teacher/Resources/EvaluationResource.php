@@ -13,7 +13,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
-use App\Services\AutoGrader; // 👈 Panggil otak penilainya di sini!
+use App\Services\AutoGrader; 
 
 class EvaluationResource extends Resource
 {
@@ -75,7 +75,80 @@ class EvaluationResource extends Resource
                 ];
             }
 
+            // ==========================================
+            // WIDGET PROFIL & SKOR MURID
+            // ==========================================
+            // 1. Hitung Statistik Rapor
+            $totalMisi = $submissions->count();
+            $misiSelesai = $submissions->where('status', 'dinilai')->count();
+            $misiPending = $submissions->where('status', 'menunggu_koreksi')->count();
+            
+            $rataRata = 0;
+            if ($misiSelesai > 0) {
+                $rataRata = round($submissions->where('status', 'dinilai')->avg('total_score'), 1);
+            }
+            
+            // 2. Tentukan Predikat berdasarkan rata-rata
+            $predikat = 'Belum Lulus 📉';
+            $warnaPredikat = '#f43f5e'; // Merah
+            
+            if ($rataRata >= 90) {
+                $predikat = 'Sangat Memuaskan 🌟';
+                $warnaPredikat = '#10b981'; // Hijau
+            } elseif ($rataRata >= 75) {
+                $predikat = 'Baik Sekali 📈';
+                $warnaPredikat = '#3b82f6'; // Biru
+            } elseif ($rataRata >= 60) {
+                $predikat = 'Cukup Baik ⚠️';
+                $warnaPredikat = '#f59e0b'; // Kuning
+            }
+
             $fields = [];
+
+            // 3. Masukkan Widget ke dalam Array Form
+            // 3. Masukkan Widget ke dalam Array Form
+            $fields[] = Forms\Components\Placeholder::make('widget_rapor')
+                ->hiddenLabel()
+                ->content(new HtmlString("
+                    <div style='background: white; border: 3px solid #cbd5e1; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); display: flex; flex-wrap: wrap; gap: 2rem; align-items: center; width: 100%;'>
+                        
+                        <!-- Header Profil -->
+                        <div style='display: flex; align-items: center; gap: 1.25rem; min-width: 250px; flex-shrink: 0;'>
+                            <div style='width: 5rem; height: 5rem; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; border: 4px solid white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);'>👦🏻</div>
+                            <div>
+                                <h2 style='font-size: 1.75rem; font-weight: 900; color: #1e293b; margin: 0; line-height: 1.2;'>{$record->name}</h2>
+                                <span style='font-size: 0.875rem; font-weight: 800; color: #64748b; background: #f1f5f9; padding: 0.375rem 1rem; border-radius: 9999px; display: inline-block; margin-top: 0.5rem; border: 2px solid #e2e8f0;'>ID Murid: {$record->id}</span>
+                            </div>
+                        </div>
+
+                        <!-- Kartu Statistik -->
+                        <div style='display: flex; flex-wrap: wrap; gap: 1rem; flex: 1; justify-content: flex-end;'>
+                            
+                            <!-- Kartu Rata-Rata Skor -->
+                            <div style='background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 1rem; padding: 1rem 1.5rem; text-align: center; min-width: 160px; flex: 1;'>
+                                <div style='font-size: 0.75rem; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;'>Rata-Rata Nilai</div>
+                                <div style='font-size: 2.5rem; font-weight: 900; color: {$warnaPredikat}; line-height: 1;'>{$rataRata}</div>
+                                <div style='font-size: 0.75rem; font-weight: 800; color: {$warnaPredikat}; margin-top: 0.5rem; background: " . str_replace('#', '', $warnaPredikat) . "1a; padding: 0.25rem 0.75rem; border-radius: 0.5rem; display: inline-block;'>{$predikat}</div>
+                            </div>
+
+                            <!-- Kartu Misi Selesai -->
+                            <div style='background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 1rem; padding: 1rem 1.5rem; text-align: center; min-width: 140px; flex: 1;'>
+                                <div style='font-size: 0.75rem; font-weight: 900; color: #166534; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;'>Misi Dinilai</div>
+                                <div style='font-size: 2.5rem; font-weight: 900; color: #15803d; line-height: 1;'>{$misiSelesai}</div>
+                                <div style='font-size: 0.75rem; font-weight: 800; color: #166534; margin-top: 0.5rem;'>Dari {$totalMisi} Misi</div>
+                            </div>
+
+                            <!-- Kartu Perlu Koreksi -->
+                            <div style='background: #fff1f2; border: 2px solid #fecdd3; border-radius: 1rem; padding: 1rem 1.5rem; text-align: center; min-width: 140px; flex: 1;'>
+                                <div style='font-size: 0.75rem; font-weight: 900; color: #9f1239; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;'>Perlu Dikoreksi</div>
+                                <div style='font-size: 2.5rem; font-weight: 900; color: #be123c; line-height: 1;'>{$misiPending}</div>
+                                <div style='font-size: 0.75rem; font-weight: 800; color: #9f1239; margin-top: 0.5rem;'>Menunggu</div>
+                            </div>
+
+                        </div>
+                    </div>
+                "))
+                ->columnSpanFull(); // 👈 INI OBATNYA AGAR MELEBAR PENUH!
 
             foreach ($submissions as $submission) {
                 $answers = \App\Models\StudentAnswer::with('question')
@@ -99,8 +172,6 @@ class EvaluationResource extends Resource
                     $kunciJawabanMentah = AutoGrader::getKunciJawaban($formatSoal, $answer->question);
 
                     // 👇 [FITUR BARU] INJEKSI KUNCI JAWABAN MATCHING 👇
-                    // Jika tipe soalnya matching, kita bantu ekstrak pasangan benarnya 
-                    // menjadi format JSON agar sistem bisa melukisnya menjadi kotak-kotak cantik!
                     if ($formatSoal === 'matching' && empty($kunciJawabanMentah)) {
                         $optKunci = is_string($answer->question->options) ? json_decode($answer->question->options, true) : ($answer->question->options ?? []);
                         $pasanganBenar = [];
@@ -114,7 +185,6 @@ class EvaluationResource extends Resource
                         }
                         $kunciJawabanMentah = json_encode($pasanganBenar);
                     }
-                    // 👆 ============================================== 👆
                     
                     // 2. Hitung Skor via Service
                     $skorOtomatis = AutoGrader::periksaSkor($formatSoal, $jawabanMuridMentah, $answer->question);
@@ -124,7 +194,6 @@ class EvaluationResource extends Resource
                     if ($skorOtomatis === 100) $isJawabanTepat = true;
                     if ($skorOtomatis === 0) $isJawabanTepat = false;
 
-                    // Bersihkan kunci untuk validasi banner UI di bawah
                     $kunciBersih = strtolower(trim(str_replace(['"', "'", '\\', '{', '}', '[', ']'], '', (string)$kunciJawabanMentah)));
 
                     // ==========================================
@@ -162,37 +231,27 @@ class EvaluationResource extends Resource
                     $jawabanMuridHTML = $jawabanMuridMentah ?: '<div style="text-align:center; padding:1rem;"><span style="background:#e2e8f0; color:#64748b; font-weight:bold; padding:0.5rem 1rem; border-radius:9999px;">Kosong / Tidak Dijawab 🏳️</span></div>';
                     $decodedJawaban = json_decode((string)$jawabanMuridHTML, true);
                     
-                    // 🧠 Siapkan Kunci Array untuk mencocokkan jawaban
                     $kunciArray = json_decode((string)$kunciJawabanMentah, true) ?? [];
                     
                     if (json_last_error() === JSON_ERROR_NONE && is_array($decodedJawaban)) {
                         $html = '<div style="display:flex; flex-direction:column; gap:1rem; margin-top:1rem;">';
                         
                         foreach ($decodedJawaban as $kiri => $kanan) {
-                            // 👇 CEK KEBENARAN PER PASANGAN 👇
                             $isBenar = isset($kunciArray[$kiri]) && $kunciArray[$kiri] === $kanan;
                             
-                            // Tentukan Tema Warna (Hijau jika Benar, Merah jika Salah)
                             $bgWrap = $isBenar ? '#ecfdf5' : '#fff1f2';
                             $borderWrap = $isBenar ? '#6ee7b7' : '#fda4af';
                             $arrowBg = $isBenar ? '#10b981' : '#f43f5e';
                             $icon = $isBenar ? '✔️' : '❌';
 
                             $html .= "<div style='display:flex; align-items:center; gap:0.5rem; padding:0.75rem; background:{$bgWrap}; border-radius:1.25rem; border:3px solid {$borderWrap};'>";
-                            
-                            // Kotak Kiri
                             $html .= $renderMatchingBox($kiri, $petaGambar);
-                            
-                            // Lingkaran Panah di Tengah (Hijau/Merah)
                             $html .= "<div style='display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; width:3rem;'>
                                         <div style='background:{$arrowBg}; color:white; width:2.5rem; height:2.5rem; display:flex; align-items:center; justify-content:center; border-radius:9999px; font-weight:900; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.1); font-size:1.25rem;'>
                                             {$icon}
                                         </div>
                                       </div>";
-                                      
-                            // Kotak Kanan
                             $html .= $renderMatchingBox($kanan, $petaGambar);
-                            
                             $html .= "</div>";
                         }
                         $html .= '</div>';
@@ -220,7 +279,6 @@ class EvaluationResource extends Resource
                         ->icon('heroicon-m-sparkles')
                         ->schema([
                             
-                            // 1. LENCANA ASISTEN MESIN
                             Forms\Components\Placeholder::make("status_mesin_{$answer->id}")
                                 ->hiddenLabel()
                                 ->content(function () use ($isJawabanTepat, $kunciBersih) {
@@ -233,7 +291,6 @@ class EvaluationResource extends Resource
                                     }
                                 })->columnSpanFull(),
 
-                            // 2. KOTAK PERTANYAAN
                             Forms\Components\Placeholder::make("soal_{$answer->id}")
                                 ->hiddenLabel()
                                 ->content(new HtmlString('
@@ -241,7 +298,6 @@ class EvaluationResource extends Resource
                                     <div style="padding:1.5rem; background:white; border:3px solid #e2e8f0; border-radius:1.5rem; color:#1e293b; font-size:1.125rem; font-weight:700;">' . $answer->question->question_text . '</div>
                                 '))->columnSpanFull(),
 
-                            // 3. KOMPARASI UI MATCHING / KUNCI JAWABAN
                             Forms\Components\Grid::make(2)
                                 ->schema([
                                     Forms\Components\Placeholder::make("kunci_{$answer->id}")
@@ -257,13 +313,12 @@ class EvaluationResource extends Resource
                                         ->hiddenLabel()
                                         ->content(new HtmlString('
                                             <div style="height:100%; padding:1.5rem; background:#eff6ff; border:3px solid #93c5fd; border-radius:1.5rem;">
-                                                <div style="margin-bottom:1.25rem;"><span style="background:#3b82f6; color:white; font-weight:900; padding:0.375rem 1rem; border-radius:9999px; font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; border:2px solid white;">✍️ Jawaban Murid</span></div>
+                                                <div style="margin-bottom:1.25rem;"><span style="background:#3b82f6; color:white; font-weight:900; padding:0.375rem 1rem; border-radius:9999px; font-size:0.75rem; letter-spacing:0.1em; text-transform:uppercase; border:2px solid white;">✍️️ Jawaban Murid</span></div>
                                                 <div style="color:#1e3a8a; font-weight:900; font-size:1.25rem;">' . $jawabanMuridHTML . '</div>
                                             </div>
                                         ')),
                                 ]),
 
-                            // 4. KOTAK EKSEKUSI (STEMPEL NILAI & CATATAN)
                             Forms\Components\Grid::make(2)
                                 ->schema([
                                     Forms\Components\TextInput::make("score_{$answer->id}")
@@ -272,12 +327,9 @@ class EvaluationResource extends Resource
                                         ->minValue(0)
                                         ->maxValue(100)
                                         ->formatStateUsing(function () use ($answer, $skorOtomatis) {
-                                            // 1. Jika guru sudah pernah menilai, pertahankan
                                             if ($answer->score !== null && $answer->score > 0) {
                                                 return $answer->score;
                                             }
-
-                                            // 2. Jika tidak, gunakan skor otomatis dari Service
                                             return $skorOtomatis ?? 0;
                                         })
                                         ->helperText('Otomatis 100 jika jawaban cocok dengan kunci.')

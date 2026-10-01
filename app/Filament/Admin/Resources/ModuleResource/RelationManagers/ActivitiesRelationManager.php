@@ -146,17 +146,17 @@ class ActivitiesRelationManager extends RelationManager
                                         ->acceptedFileTypes(['video/mp4', 'video/webm'])
                                         ->maxSize(10240),
 
-                                    Forms\Components\FileUpload::make('voice_note')
-                                        ->label('🎤 Voice Note')
-                                        ->disk('modul_rahasia')->visibility('private')
-                                        ->directory(function (RelationManager $livewire, Forms\Get $get) {
-                                            $modul = Str::slug($livewire->getOwnerRecord()->title ?? 'modul');
-                                            $aktivitas = Str::slug($get('../../title') ?? 'aktivitas');
-                                            return "modul_private/{$modul}/{$aktivitas}/voicenote";
-                                        })
-                                        ->acceptedFileTypes(['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm', 'video/mp4']) 
-                                        ->maxSize(10240),
-                                    ])->columns(3),
+                                    // Forms\Components\FileUpload::make('voice_note')
+                                    //     ->label('🎤 Voice Note')
+                                    //     ->disk('modul_rahasia')->visibility('private')
+                                    //     ->directory(function (RelationManager $livewire, Forms\Get $get) {
+                                    //         $modul = Str::slug($livewire->getOwnerRecord()->title ?? 'modul');
+                                    //         $aktivitas = Str::slug($get('../../title') ?? 'aktivitas');
+                                    //         return "modul_private/{$modul}/{$aktivitas}/voicenote";
+                                    //     })
+                                    //     ->acceptedFileTypes(['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm', 'video/mp4']) 
+                                    //     ->maxSize(10240),
+                                    ])->columns(2),
                                         
                                     Forms\Components\RichEditor::make('konten_tahapan')
                                         ->label('Isi Materi (Teks & Gambar)')
@@ -270,16 +270,16 @@ class ActivitiesRelationManager extends RelationManager
                                                     })
                                                     ->acceptedFileTypes(['video/mp4', 'video/webm'])->maxSize(10240),
 
-                                                Forms\Components\FileUpload::make('voice_note')
-                                                    ->label('🎤 Voice Note')
-                                                    ->disk('modul_rahasia')->visibility('private')
-                                                    ->directory(function (RelationManager $livewire, Forms\Get $get) {
-                                                        $modul = Str::slug($livewire->getOwnerRecord()->title ?? 'modul');
-                                                        $aktivitas = Str::slug($get('../../title') ?? 'aktivitas');
-                                                        return "modul_private/{$modul}/{$aktivitas}/voicenote";
-                                                    })
-                                                    ->acceptedFileTypes(['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm', 'video/mp4']) 
-                                                    ->maxSize(10240),
+                                                // Forms\Components\FileUpload::make('voice_note')
+                                                //     ->label('🎤 Voice Note')
+                                                //     ->disk('modul_rahasia')->visibility('private')
+                                                //     ->directory(function (RelationManager $livewire, Forms\Get $get) {
+                                                //         $modul = Str::slug($livewire->getOwnerRecord()->title ?? 'modul');
+                                                //         $aktivitas = Str::slug($get('../../title') ?? 'aktivitas');
+                                                //         return "modul_private/{$modul}/{$aktivitas}/voicenote";
+                                                //     })
+                                                //     ->acceptedFileTypes(['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm', 'video/mp4']) 
+                                                //     ->maxSize(10240),
                                             ]),
 
                                             Forms\Components\Grid::make(2)->schema([
