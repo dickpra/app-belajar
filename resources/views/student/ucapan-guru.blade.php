@@ -87,6 +87,7 @@
             line-height: 1;
         }
     </style>
+    @laravelPWA
 </head>
 
 <body class="text-slate-800 antialiased min-h-screen flex flex-col pb-28 relative overflow-x-hidden">

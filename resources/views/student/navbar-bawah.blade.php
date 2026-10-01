@@ -3,7 +3,9 @@
         <div class="flex justify-between items-end p-2 px-3 sm:px-4 bg-white rounded-t-[2rem]">
             
             <!-- MENU 1: PETA -->
-            <a href="{{ route('student.dashboard') }}" class="flex flex-col items-center gap-1 group transform transition-transform active:scale-90 {{ request()->routeIs('student.dashboard') ? 'opacity-100' : 'opacity-60 hover:opacity-100' }}">
+            <a href="{{ route('student.dashboard') }}" 
+               onclick="event.preventDefault(); window.location.replace(this.href);"
+               class="flex flex-col items-center gap-1 group transform transition-transform active:scale-90 {{ request()->routeIs('student.dashboard') ? 'opacity-100' : 'opacity-60 hover:opacity-100' }}">
                 <div class="p-1.5 transition-all {{ request()->routeIs('student.dashboard') ? 'relative bg-blue-100 p-2 rounded-2xl border-[3px] border-blue-200 shadow-sm -mt-4' : '' }}">
                     <span class="text-xl sm:text-2xl block {{ request()->routeIs('student.dashboard') ? 'drop-shadow-sm' : 'grayscale group-hover:grayscale-0' }}">🗺️</span>
                 </div>
@@ -11,15 +13,19 @@
             </a>
 
             <!-- MENU 2: RAPORKU -->
-            <a href="{{ route('student.raporku') }}" class="flex flex-col items-center gap-1 group transform transition-transform active:scale-90 {{ request()->routeIs('student.raporku') ? 'opacity-100' : 'opacity-60 hover:opacity-100' }}">
+            <a href="{{ route('student.raporku') }}" 
+               onclick="event.preventDefault(); window.location.replace(this.href);"
+               class="flex flex-col items-center gap-1 group transform transition-transform active:scale-90 {{ request()->routeIs('student.raporku') ? 'opacity-100' : 'opacity-60 hover:opacity-100' }}">
                 <div class="p-1.5 transition-all {{ request()->routeIs('student.raporku') ? 'relative bg-emerald-100 p-2 rounded-2xl border-[3px] border-emerald-200 shadow-sm -mt-4' : '' }}">
                     <span class="text-xl sm:text-2xl block {{ request()->routeIs('student.raporku') ? 'drop-shadow-sm' : 'grayscale group-hover:grayscale-0' }}">📚</span>
                 </div>
                 <span class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest mt-0 {{ request()->routeIs('student.raporku') ? 'text-emerald-600 mt-1' : 'text-slate-400 group-hover:text-emerald-500' }}">Rapor</span>
             </a>
 
-            <!-- MENU 3: UCAPAN GURU (BARU) -->
-            <a href="{{ route('student.ucapan') }}" class="flex flex-col items-center gap-1 group transform transition-transform active:scale-90 {{ request()->routeIs('student.ucapan') ? 'opacity-100' : 'opacity-60 hover:opacity-100' }}">
+            <!-- MENU 3: UCAPAN GURU -->
+            <a href="{{ route('student.ucapan') }}" 
+               onclick="event.preventDefault(); window.location.replace(this.href);"
+               class="flex flex-col items-center gap-1 group transform transition-transform active:scale-90 {{ request()->routeIs('student.ucapan') ? 'opacity-100' : 'opacity-60 hover:opacity-100' }}">
                 <div class="p-1.5 transition-all {{ request()->routeIs('student.ucapan') ? 'relative bg-pink-100 p-2 rounded-2xl border-[3px] border-pink-200 shadow-sm -mt-4' : '' }}">
                     <span class="text-xl sm:text-2xl block {{ request()->routeIs('student.ucapan') ? 'drop-shadow-sm' : 'grayscale group-hover:grayscale-0' }}">💬</span>
                 </div>
@@ -27,7 +33,9 @@
             </a>
 
             <!-- MENU 4: PANDUAN -->
-            <a href="{{ route('student.panduan') }}" class="flex flex-col items-center gap-1 group transform transition-transform active:scale-90 {{ request()->routeIs('student.panduan') ? 'opacity-100' : 'opacity-60 hover:opacity-100' }}">
+            <a href="{{ route('student.panduan') }}" 
+               onclick="event.preventDefault(); window.location.replace(this.href);"
+               class="flex flex-col items-center gap-1 group transform transition-transform active:scale-90 {{ request()->routeIs('student.panduan') ? 'opacity-100' : 'opacity-60 hover:opacity-100' }}">
                 <div class="p-1.5 transition-all {{ request()->routeIs('student.panduan') ? 'relative bg-amber-100 p-2 rounded-2xl border-[3px] border-amber-200 shadow-sm -mt-4' : '' }}">
                     <span class="text-xl sm:text-2xl block {{ request()->routeIs('student.panduan') ? 'drop-shadow-sm' : 'grayscale group-hover:grayscale-0' }}">💡</span>
                 </div>
@@ -35,7 +43,9 @@
             </a>
 
             <!-- MENU 5: PROFIL -->
-            <a href="{{ route('student.profil') }}" class="flex flex-col items-center gap-1 group transform transition-transform active:scale-90 {{ request()->routeIs('student.profil') ? 'opacity-100' : 'opacity-60 hover:opacity-100' }}">
+            <a href="{{ route('student.profil') }}" 
+               onclick="event.preventDefault(); window.location.replace(this.href);"
+               class="flex flex-col items-center gap-1 group transform transition-transform active:scale-90 {{ request()->routeIs('student.profil') ? 'opacity-100' : 'opacity-60 hover:opacity-100' }}">
                 <div class="p-1.5 transition-all {{ request()->routeIs('student.profil') ? 'relative bg-purple-100 p-2 rounded-2xl border-[3px] border-purple-200 shadow-sm -mt-4' : '' }}">
                     <span class="text-xl sm:text-2xl block {{ request()->routeIs('student.profil') ? 'drop-shadow-sm' : 'grayscale group-hover:grayscale-0' }}">👤</span>
                 </div>

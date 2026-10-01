@@ -43,6 +43,7 @@
             user-select: none;
         }
     </style>
+    @laravelPWA
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col pb-28 overflow-x-hidden">
 
@@ -68,7 +69,7 @@
                 <!-- Elemen dalam: hanya untuk animasi -->
                 <div class="floating-avatar">
                     <div class="flex items-center justify-center w-32 h-32 bg-green-300 rounded-full border-[6px] border-white shadow-[0_8px_0_#ca8a04] avatar-circle overflow-hidden">
-                        <img src="https://api.dicebear.com/10.x/critters/svg?borderRadius=50&seed=dcs1fdmk{{ session('student_name') ?? 'Mukidi' }}" 
+                        <img src="https://api.dicebear.com/10.x/critters/svg?borderRadius=50&seed=dcs1fdmk{{ session('student_name') ?? 'Murid' }}" 
                         alt="Avatar" class="w-24 h-24 object-contain">
                     </div>
                 </div>
@@ -78,8 +79,8 @@
                 <span class="inline-block bg-purple-100 text-purple-600 font-black px-5 py-2 rounded-full text-xs uppercase tracking-widest mb-3 border-2 border-purple-200 shadow-sm">
                     Pelajar Hebat 🌟
                 </span>
-                <h2 class="text-3xl font-black text-slate-700 leading-tight">{{ session('student_name') ?? 'Mukidi' }}</h2>
-                
+                <h2 class="text-3xl font-black text-slate-700 leading-tight">{{ session('student_name') ?? 'Murid' }}</h2>
+
                 <!-- Tampilan PIN yang lebih interaktif -->
                 <div class="mt-4 bg-slate-50 inline-block px-4 py-2 rounded-2xl border-4 border-slate-100">
                     <p class="text-slate-400 font-bold text-sm uppercase tracking-wide mb-1">PIN Rahasia</p>

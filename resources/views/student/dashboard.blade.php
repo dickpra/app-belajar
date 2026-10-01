@@ -11,6 +11,7 @@
         .bubbly-button { transition: all 0.2s ease; }
         .bubbly-button:active { transform: translateY(4px); box-shadow: 0 0px 0 transparent !important; }
     </style>
+    @laravelPWA
 </head>
 <body class="text-gray-800 antialiased min-h-screen relative overflow-x-hidden">
 

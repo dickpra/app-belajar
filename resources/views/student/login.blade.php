@@ -651,6 +651,7 @@
         }
 
     </style>
+    @laravelPWA
 
 </head>
 
@@ -1004,6 +1005,13 @@
             });
 
         });
+
+        // CEGATAN 2 (Lapis Browser): Jika tombol back ditekan dari dashboard, 
+        // langsung tendang balik ke depan!
+        let isLoggedIn = "{{ session()->has('student_id') ? 'yes' : 'no' }}";
+        if (isLoggedIn === 'yes') {
+            window.location.replace("{{ route('student.dashboard') }}");
+        }
 
     </script>
 

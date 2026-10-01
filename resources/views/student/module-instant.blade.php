@@ -85,6 +85,7 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>
+@laravelPWA
 </head>
 <body class="text-slate-800 antialiased h-screen flex flex-col overflow-hidden">
     
@@ -595,7 +596,7 @@
                 // 👇 JIKA JAVASCRIPT TAHU SOAL INI SUDAH DIJAWAB 👇
                 if (slidesData[currentIndex].is_answered) {
                     bar.classList.add('bg-slate-100', 'border-slate-300');
-                    btn.innerHTML = '✅ Sudah Dinilai, Lanjut ➔';
+                    btn.innerHTML = '✅ Sudah Dijawab, Lanjut ➔';
                     btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-slate-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-slate-400 border-b-[8px] border-b-slate-700 uppercase tracking-wider';
                     
                     // Paksa memanggil slide selanjutnya!

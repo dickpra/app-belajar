@@ -9,6 +9,9 @@ class StudentAuthController extends Controller
 {
     public function showLogin()
     {
+        if (session()->has('student_id')) {
+            return redirect()->route('student.dashboard');
+        }
         // Ambil semua data siswa yang aktif untuk ditampilkan di dropdown
         $students = Student::where('is_active', true)->get();
         return view('student.login', compact('students'));

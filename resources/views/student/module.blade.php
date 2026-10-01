@@ -79,6 +79,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
+    @laravelPWA
 </head>
 <body class="text-slate-800 antialiased h-screen flex overflow-hidden bg-slate-50">
 <div id="toast-warning" class="fixed top-10 left-1/2 transform -translate-x-1/2 z-[100] transition-all duration-500 ease-in-out opacity-0 -translate-y-20 pointer-events-none">
