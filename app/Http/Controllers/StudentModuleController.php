@@ -209,11 +209,25 @@ class StudentModuleController extends Controller
         $kunciJawaban = '';
         $skor = 0;
 
-        // 👇 JIKA MURID NYERAH (BYPASS SEMUA KOREKSI) 👇
+        // 👇 1. UBAH JSON JADI ARRAY DI AWAL AGAR MESIN PAHAM 👇
+        if (is_string($jawabanMurid)) {
+            $decoded = json_decode($jawabanMurid, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $jawabanMurid = $decoded;
+            }
+        }
+
+        // 👇 2. JIKA MURID NYERAH (BYPASS SEMUA KOREKSI) 👇
         if ($request->has('is_nyerah') && $request->is_nyerah == true) {
             $isCorrect = false;
             $skor = 0;
-            $jawabanMurid = "Menyerah";
+            
+            // 💡 SULAP JAWABAN: Hanya untuk Teks/Angka biasa! 💡
+            // Jika formatnya Matching atau Array, biarkan murni agar UI Guru tidak rusak.
+            if ($question->answer_format !== 'matching' && !is_array($jawabanMurid)) {
+                $jawabanMurid = "[NYERAH] " . ($jawabanMurid ?? 'Kosong'); 
+            }
+
             try { $kunciJawaban = \App\Services\AutoGrader::getKunciJawaban($question->answer_format, $question); } 
             catch (\Throwable $e) { $kunciJawaban = $question->correct_answer ?? ''; }
         } 

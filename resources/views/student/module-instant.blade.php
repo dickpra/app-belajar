@@ -883,7 +883,22 @@
         btnLewati.innerText = 'Menyimpan...';
         btnLewati.disabled = true;
         
-        // Tembak API dengan membawa bendera "is_nyerah: true"
+        // 👇 1. AMBIL JAWABAN TERAKHIR MURID DARI FORM 👇
+        const form = document.getElementById('instant-form');
+        const formData = new FormData(form);
+        
+        let jawabanTarget = formData.get(`jawaban[${currentSlide.id}]`);
+        
+        if (!jawabanTarget && formData.has(`jawaban[${currentSlide.id}][]`)) {
+            jawabanTarget = formData.getAll(`jawaban[${currentSlide.id}][]`).join(' | ');
+        }
+        if (!jawabanTarget && formData.has(`jawaban[${currentSlide.id}][pilihan]`)) {
+            let pilihan = formData.get(`jawaban[${currentSlide.id}][pilihan]`);
+            let perbaikan = formData.get(`jawaban[${currentSlide.id}][perbaikan]`) || '';
+            if (pilihan) jawabanTarget = { pilihan: pilihan, perbaikan: perbaikan };
+        }
+        
+        // 👇 2. TEMBAK API DENGAN JAWABAN ASLI & BENDERA "NYERAH" 👇
         fetch("{{ route('student.module.cek-instan') }}", {
             method: 'POST',
             headers: { 
@@ -893,14 +908,14 @@
             },
             body: JSON.stringify({ 
                 question_id: currentSlide.id, 
-                jawaban: 'NYERAH', 
-                is_nyerah: true // 🚩 Bendera khusus untuk Controller
+                jawaban: jawabanTarget || 'Kosong', // 👈 Kirim jawaban yang diketik murid
+                is_nyerah: true // 🚩 Bendera untuk Controller
             })
         })
         .then(() => {
             slidesData[currentIndex].is_answered = true; 
             kunciForm(currentIndex);
-            hideHintPopup();
+            if (typeof hideHintPopup === 'function') hideHintPopup();
             slideSelanjutnya();
         })
         .catch(() => {
