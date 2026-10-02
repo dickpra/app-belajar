@@ -90,6 +90,8 @@
 
 <!-- 🕵️‍♂️ SIHIR PELUKIS GARIS (DENGAN DETEKSI BENAR/SALAH) -->
 <script>
+    window['kunciPasangan_' + {{ $question->id }}] = {!! json_encode($kunciPasangan) !!};
+
     document.addEventListener("DOMContentLoaded", function() {
         const soalId = {{ $question->id }};
         const isCompleted = {{ $isCompleted ? 'true' : 'false' }};

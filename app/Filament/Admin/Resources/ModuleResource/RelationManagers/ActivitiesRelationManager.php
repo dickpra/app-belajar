@@ -368,7 +368,7 @@ class ActivitiesRelationManager extends RelationManager
                                             Forms\Components\Section::make(fn (Forms\Get $get) => $get('../../answer_format') === 'matching' ? 'Sisi Kiri' : 'Opsi')
                                                 ->schema([
                                                     Forms\Components\TextInput::make('teks_pilihan')
-                                                        ->label(fn (Forms\Get $get) => $get('../../answer_format') === 'complex_fill' ? 'Kata Jawaban' : 'Teks Opsi'),
+                                                        ->label(fn (Forms\Get $get) => $get('../../answer_format') === 'complex_fill' ? 'Kata Jawaban' : 'Teks Opsi')->required(),
                                                     Forms\Components\FileUpload::make('image_pilihan')
                                                         ->image()->optimize('webp')->imageEditor()
                                                         ->disk('modul_rahasia')->directory('modul_private/opsi_jawaban')->label('Gambar Opsi')
@@ -377,11 +377,13 @@ class ActivitiesRelationManager extends RelationManager
 
                                             Forms\Components\Section::make('Sisi Kanan (Pasangan)')
                                                 ->schema([
-                                                    Forms\Components\TextInput::make('matching_right')->label('Teks Pasangan'),
+                                                    Forms\Components\TextInput::make('matching_right')->label('Teks Pasangan')->required(),
                                                     Forms\Components\FileUpload::make('image_matching_right')
                                                         ->image()->optimize('webp')->imageEditor()
                                                         ->disk('modul_rahasia')->directory('modul_private/opsi_jawaban')->label('Gambar Pasangan'),
-                                                ])->columns(2)->visible(fn (Forms\Get $get) => $get('../../answer_format') === 'matching'),
+                                                ])->columns(2)
+                                                
+                                                ->visible(fn (Forms\Get $get) => $get('../../answer_format') === 'matching'),
 
                                             Forms\Components\Checkbox::make('is_correct')
                                                 ->label('⭐ Ini Adalah Jawaban Benar')

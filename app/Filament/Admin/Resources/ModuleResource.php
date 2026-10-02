@@ -45,10 +45,19 @@ class ModuleResource extends Resource
                                 ->label('🤖 Aktifkan Mode Pembelajaran Adaptif?'),
 
                             // 👇 (TAMBAHKAN INI) Toggle Mode Duolingo
-                            Forms\Components\Toggle::make('is_instant_mode')
-                                ->label('⚡ Mode Latihan Instan (Ala Duolingo)')
-                                ->helperText('Murid mengerjakan 1 soal per halaman dengan cek jawaban instan tanpa campur tangan guru.')
-                                ->default(false),
+                            Forms\Components\Section::make('Pengaturan Tampilan & Mode Latihan')
+                                ->schema([
+                                    Forms\Components\Toggle::make('is_instant_mode')
+                                        ->label('⚡ Mode Latihan Instan (Ala Duolingo)')
+                                        ->helperText('Murid mengerjakan 1 soal per halaman dengan cek jawaban instan tanpa campur tangan guru.')
+                                        ->reactive(), // Agar bisa memicu tampilan toggle di bawahnya
+
+                                    Forms\Components\Toggle::make('is_hint_enabled')
+                                        ->label('💡 Aktifkan Fitur Bantuan & Lewati Soal')
+                                        ->helperText('Murid akan mendapat petunjuk jika salah 2x. Hanya berfungsi jika Mode Latihan Instan aktif.')
+                                        // Sembunyikan toggle ini kalau Mode Instan sedang dimatikan
+                                        ->hidden(fn (Forms\Get $get) => $get('is_instant_mode') !== true), 
+                                ]),
                                 
                             Forms\Components\Toggle::make('is_active')
                                 ->default(true)

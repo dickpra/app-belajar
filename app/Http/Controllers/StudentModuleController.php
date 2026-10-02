@@ -209,51 +209,90 @@ class StudentModuleController extends Controller
         $kunciJawaban = '';
         $skor = 0;
 
-        // A. Penanganan Khusus Tipe Benar / Salah (True False Correction)
-        if ($question->answer_format === 'true_false_correction') {
-            $pilihanMurid = is_array($jawabanMurid) ? ($jawabanMurid['pilihan'] ?? '') : $jawabanMurid;
-            $perbaikanMurid = is_array($jawabanMurid) ? trim($jawabanMurid['perbaikan'] ?? '') : '';
+        // 👇 JIKA MURID NYERAH (BYPASS SEMUA KOREKSI) 👇
+        if ($request->has('is_nyerah') && $request->is_nyerah == true) {
+            $isCorrect = false;
+            $skor = 0;
+            $jawabanMurid = "Menyerah";
+            try { $kunciJawaban = \App\Services\AutoGrader::getKunciJawaban($question->answer_format, $question); } 
+            catch (\Throwable $e) { $kunciJawaban = $question->correct_answer ?? ''; }
+        } 
+        else {
+            // --- KOREKSI NORMAL ---
+            
+            // A. Penanganan Khusus Tipe Benar / Salah
+            if ($question->answer_format === 'true_false_correction') {
+                $pilihanMurid = is_array($jawabanMurid) ? ($jawabanMurid['pilihan'] ?? '') : $jawabanMurid;
+                $perbaikanMurid = is_array($jawabanMurid) ? trim($jawabanMurid['perbaikan'] ?? '') : '';
 
-            $kunciPilihan = $question->true_false_answer; // 'Benar' atau 'Salah'
-            $kunciPerbaikan = trim($question->correction_text ?? '');
+                $kunciPilihan = $question->true_false_answer; 
+                $kunciPerbaikan = trim($question->correction_text ?? '');
 
-            if ($kunciPilihan === 'Benar') {
-                $isCorrect = (strtolower($pilihanMurid) === 'benar');
-                $kunciJawaban = 'Pernyataan BENAR';
-            } else {
-                $pilihanBenar = (strtolower($pilihanMurid) === 'salah');
-                // Jika guru mengisi teks perbaikan, cocokkan perbaikannya
-                $perbaikanBenar = empty($kunciPerbaikan) || (strcasecmp($perbaikanMurid, $kunciPerbaikan) === 0);
-                $isCorrect = $pilihanBenar && $perbaikanBenar;
-                $kunciJawaban = 'Pernyataan SALAH' . ($kunciPerbaikan ? " (Perbaikan: {$kunciPerbaikan})" : '');
-            }
-            $skor = $isCorrect ? 100 : 0;
-        } else {
-            // B. Tipe Soal Lainnya (Dilindungi Try-Catch agar tidak menimbulkan 500 error)
-            try {
-                $skor = \App\Services\AutoGrader::periksaSkor($question->answer_format, $jawabanMurid, $question);
-                $isCorrect = ($skor === 100);
-            } catch (\Throwable $e) {
-                $skor = 0;
-                $isCorrect = false;
-            }
-
-            try {
-                $kunciJawaban = \App\Services\AutoGrader::getKunciJawaban($question->answer_format, $question);
-            } catch (\Throwable $e) {
-                $kunciJawaban = $question->correct_answer ?? 'Perhatikan kembali materi.';
+                if ($kunciPilihan === 'Benar') {
+                    $isCorrect = (strtolower($pilihanMurid) === 'benar');
+                    $kunciJawaban = 'Pernyataan BENAR';
+                } else {
+                    $pilihanBenar = (strtolower($pilihanMurid) === 'salah');
+                    $perbaikanBenar = empty($kunciPerbaikan) || (strcasecmp($perbaikanMurid, $kunciPerbaikan) === 0);
+                    $isCorrect = $pilihanBenar && $perbaikanBenar;
+                    $kunciJawaban = 'Pernyataan SALAH' . ($kunciPerbaikan ? " (Perbaikan: {$kunciPerbaikan})" : '');
+                }
+                $skor = $isCorrect ? 100 : 0;
+            } 
+            
+            // 👇 B. KOREKSI MANDIRI MENJODOHKAN (DIJAMIN 100% AKURAT) 👇
+            elseif ($question->answer_format === 'matching') {
+                $jawabanArray = is_string($jawabanMurid) ? json_decode($jawabanMurid, true) : $jawabanMurid;
+                
+                if (is_array($jawabanArray)) {
+                    $totalPasangan = count($question->options);
+                    $benar = 0;
+                    
+                    foreach($question->options as $idx => $opsi) {
+                        $kiri = !empty($opsi['teks_pilihan']) ? $opsi['teks_pilihan'] : ($opsi['image_pilihan'] ?? 'kiri-'.$idx);
+                        $kanan = !empty($opsi['matching_right']) ? $opsi['matching_right'] : ($opsi['image_matching_right'] ?? 'kanan-'.$idx);
+                        
+                        // Cek apakah murid menarik garis dari kiri yang tepat ke kanan yang tepat
+                        if (isset($jawabanArray[$kiri]) && $jawabanArray[$kiri] === $kanan) {
+                            $benar++;
+                        }
+                    }
+                    
+                    // Harus menyambungkan SEMUA pasangan dengan benar untuk lulus
+                    $isCorrect = ($totalPasangan > 0 && $benar === $totalPasangan);
+                    $skor = $totalPasangan > 0 ? ($benar / $totalPasangan) * 100 : 0;
+                }
+                $kunciJawaban = 'Pastikan semua garis terhubung dengan pasangan yang tepat.';
+            } 
+            
+            // C. Tipe Soal Lainnya (Masuk ke AutoGrader)
+            else {
+                try {
+                    $skor = \App\Services\AutoGrader::periksaSkor($question->answer_format, $jawabanMurid, $question);
+                    $isCorrect = ($skor === 100);
+                } catch (\Throwable $e) {
+                    $skor = 0;
+                    $isCorrect = false;
+                }
+                try {
+                    $kunciJawaban = \App\Services\AutoGrader::getKunciJawaban($question->answer_format, $question);
+                } catch (\Throwable $e) {
+                    $kunciJawaban = $question->correct_answer ?? 'Perhatikan kembali materi.';
+                }
             }
         }
 
-        // Simpan jawaban siswa ke database
-        \App\Models\StudentAnswer::updateOrCreate(
-            ['student_id' => $studentId, 'question_id' => $question->id],
-            [
-                'answer_value' => is_array($jawabanMurid) ? json_encode($jawabanMurid) : $jawabanMurid,
-                'is_correct' => $isCorrect,
-                'score' => $skor ?? 0
-            ]
-        );
+        // 👇 LOGIKA PENYIMPANAN AMAN 👇
+        if ($isCorrect || $request->has('is_nyerah')) {
+            \App\Models\StudentAnswer::updateOrCreate(
+                ['student_id' => $studentId, 'question_id' => $question->id],
+                [
+                    'answer_value' => is_array($jawabanMurid) ? json_encode($jawabanMurid) : $jawabanMurid,
+                    'is_correct' => $isCorrect,
+                    'score' => $skor
+                ]
+            );
+        }
 
         return response()->json([
             'status' => 'success',

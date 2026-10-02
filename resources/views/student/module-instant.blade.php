@@ -99,6 +99,20 @@
             </div>
         </div>
     </div>
+    <!-- 👇 POPUP HINT MELAYANG DARI ATAS 👇 -->
+    <div id="hint-popup" class="fixed top-4 md:top-6 left-1/2 transform -translate-x-1/2 z-[250] transition-all duration-500 ease-out opacity-0 -translate-y-24 pointer-events-none w-[90%] max-w-sm">
+        <div class="bg-amber-50 border-4 border-amber-300 px-5 py-4 rounded-3xl shadow-[0_8px_0_#fcd34d] flex items-start gap-3 relative pointer-events-auto">
+            <!-- Tombol Tutup (Silang) -->
+            <button onclick="hideHintPopup()" class="absolute -top-3 -right-3 w-8 h-8 bg-white border-4 border-amber-200 text-slate-400 font-black rounded-full flex items-center justify-center hover:bg-red-100 hover:text-red-500 hover:border-red-300 shadow-sm transition-colors cursor-pointer z-10 text-sm">✖</button>
+            
+            <div class="text-3xl animate-bounce drop-shadow-sm mt-1">💡</div>
+            <div class="flex-1">
+                <h4 class="font-black text-sm text-amber-500 uppercase tracking-widest mb-1">Petunjuk</h4>
+                <!-- TEKS PUZZLE AKAN MASUK KE SINI -->
+                <p id="hint-popup-text" class="font-bold text-amber-800 text-base md:text-lg tracking-[0.1em] leading-tight"></p>
+            </div>
+        </div>
+    </div>
 
     @php
         if (!function_exists('renderPrivateImages')) {
@@ -176,6 +190,13 @@
                                 🎯 {{ $slide['activity_title'] }}
                             </span>
                         </div>
+
+                        <!-- 👇 1. KOTAK HINT KECIL DI ATAS SOAL 👇 -->
+                        <div id="hint-area-{{ $index }}" class="hidden mb-6 mx-auto max-w-sm bg-amber-50 border-2 border-amber-300 rounded-xl p-3 text-center shadow-sm transition-all duration-300">
+                            <span class="text-[10px] font-black text-amber-500 uppercase tracking-widest block mb-1">💡 Petunjuk</span>
+                            <span id="hint-text-{{ $index }}" class="text-amber-800 font-bold text-base md:text-lg tracking-widest"></span>
+                        </div>
+                        <!-- 👆 ================================== 👆 -->
 
                         <!-- ===================================== -->
                         <!-- JIKA INI SLIDE MATERI                 -->
@@ -329,6 +350,11 @@
                     <h3 id="feedback-title" class="text-2xl md:text-3xl font-black uppercase tracking-wider"></h3>
                 </div>
                 <p id="feedback-message" class="font-bold opacity-90 text-base md:text-lg ml-1"></p>
+
+                <!-- 👇 2. TOMBOL LEWATI KECIL 👇 -->
+                <button id="btn-lewati-kecil" type="button" onclick="lewatiSoal()" class="hidden text-xs md:text-sm font-bold text-slate-400 hover:text-slate-600 underline underline-offset-4 mt-2 text-left ml-1 w-max transition-colors">
+                    ⏭️️ Nyerah dan lewati soal ini
+                </button>
             </div>
             <button id="btn-action" class="btn-3d w-full md:w-auto min-w-[220px] text-white font-black text-2xl py-5 px-8 rounded-2xl uppercase tracking-wider border-2 border-transparent">
                 Memuat...
@@ -368,7 +394,8 @@
                 { 
                     type: '{{ $slide['type'] }}', 
                     id: {{ $slide['type'] == 'soal' ? $slide['data']->id : 'null' }},
-                    // 👇 INI KUNCI UTAMANYA: Pastikan JS tahu statusnya
+                    // Beritahu JS format soalnya apa
+                    format: '{{ $slide['type'] == 'soal' ? ($slide['data']->answer_format ?? '') : '' }}',
                     is_answered: {{ (isset($slide['is_answered']) && $slide['is_answered']) ? 'true' : 'false' }} 
                 },
             @endforeach
@@ -376,6 +403,87 @@
         const totalSlides = {{ $totalSlides }};
         let currentIndex = {{ $startIndex }};
         let isChecking = false;
+
+        // 👇 TAMBAHAN UNTUK SMART HINT 👇
+        const isHintEnabled = {{ $module->is_hint_enabled ?? 'false' }};
+        let salahCountData = {}; // Menyimpan jumlah salah tiap-tiap soal
+
+        // 👇 FUNGSI PENGGERAK POPUP 👇
+        function showHintPopup(pesan) {
+            const popup = document.getElementById('hint-popup');
+            const text = document.getElementById('hint-popup-text');
+            text.innerText = pesan;
+            popup.classList.remove('opacity-0', '-translate-y-24', 'pointer-events-none');
+            popup.classList.add('opacity-100', 'translate-y-0');
+        }
+
+        function hideHintPopup() {
+            const popup = document.getElementById('hint-popup');
+            popup.classList.remove('opacity-100', 'translate-y-0');
+            popup.classList.add('opacity-0', '-translate-y-24', 'pointer-events-none');
+        }
+
+                // 👇 1. KITA PISAHKAN MESIN PUZZLE AGAR BISA DIPAKAI ULANG 👇
+        function buatTeksPuzzle(kunci, mistakes) {
+            if (!kunci) return 'Ayo teliti lagi!';
+            let kataArray = kunci.toString().toUpperCase().split(' ');
+            
+            let hasilPuzzle = kataArray.map(kata => {
+                let chars = kata.split('');
+                return chars.map((huruf, index) => {
+                    if (mistakes === 2) return '_';
+                    if (mistakes === 3) {
+                        if (index === 0 || index === chars.length - 1) return huruf;
+                        return '_';
+                    }
+                    if (mistakes >= 4) {
+                        if (index === 0 || index === chars.length - 1 || index % 2 === 0) return huruf;
+                        return '_';
+                    }
+                    return '_';
+                }).join(' '); 
+            });
+
+            return hasilPuzzle.join(' \u00A0\u00A0\u00A0 '); 
+        }
+
+
+        // 👇 2. FUNGSI HINT ROUTER UTAMA 👇
+        function generateSmartHint(kunci, format, mistakes) {
+            const tipePuzzle = ['text_input', 'number_input', 'complex_fill'];
+
+            // JIKA TIPE ISIAN TEKS / ANGKA
+            if (tipePuzzle.includes(format)) {
+                return buatTeksPuzzle(kunci, mistakes);
+            } 
+            
+            // JIKA TIPE BENAR/SALAH (TRUE FALSE CORRECTION)
+            else if (format === 'true_false_correction') {
+                // Cek apakah server membalas dengan adanya teks "(Perbaikan: ...)"
+                if (kunci && kunci.includes('(Perbaikan:')) {
+                    // Ambil teks asli yang ada di dalam kurung perbaikan
+                    let teksPerbaikan = kunci.split('(Perbaikan: ')[1].replace(')', '').trim();
+                    // Berikan puzzle huruf khusus untuk teks perbaikannya!
+                    return "Pernyataan itu SALAH. Ketik perbaikannya: " + buatTeksPuzzle(teksPerbaikan, mistakes);
+                } else {
+                    return "Coba teliti lagi pernyataannya, apakah Benar atau Salah? 🤔";
+                }
+            } 
+            
+            // JIKA TIPE MENJODOHKAN
+            else if (format === 'matching') {
+                return "Periksa lagi arah garismu, ada kotak yang salah pasangan! 🧶";
+            } 
+            
+            // JIKA TIPE PILIHAN GANDA
+            else if (format === 'multiple_choice') {
+                return "Coba eliminasi jawaban yang paling tidak mungkin! 🤔";
+            } 
+            
+            else {
+                return "Ayo semangat, baca soalnya pelan-pelan!";
+            }
+        }
 
         document.addEventListener("DOMContentLoaded", function() {
             if (currentIndex >= totalSlides) akhiriLatihan();
@@ -580,145 +688,185 @@
         }
 
         function resetBottomBar(type) {
-            isChecking = false;
-            const bar = document.getElementById('bottom-bar');
-            const feedback = document.getElementById('feedback-area');
-            const btn = document.getElementById('btn-action');
+        isChecking = false;
+        
+        // 1. Pastikan popup hint selalu tertutup saat bar di-reset
+        if (typeof hideHintPopup === 'function') {
+            hideHintPopup();
+        }
 
-            bar.className = 'fixed bottom-0 left-0 w-full bg-white border-t-4 border-slate-200 p-5 md:p-8 z-50 transition-all duration-300';
-            feedback.classList.add('hidden');
-            
-            if (type === 'materi') {
-                btn.innerHTML = 'Paham, Lanjut! ➔';
-                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-blue-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-blue-400 border-b-[8px] border-b-blue-700 uppercase tracking-wider';
+        const bar = document.getElementById('bottom-bar');
+        const feedback = document.getElementById('feedback-area');
+        const btn = document.getElementById('btn-action');
+
+        // 👇 2. INI OBAT BUG-NYA: Kembalikan wujud tombol Nyerah seperti semula 👇
+        const btnLewati = document.getElementById('btn-lewati-kecil');
+        if (btnLewati) {
+            btnLewati.classList.add('hidden'); // Sembunyikan lagi
+            btnLewati.innerText = '⏭ Nyerah dan lewati soal ini'; // Balikkan teksnya
+            btnLewati.disabled = false; // Buka kunciannya agar bisa diklik
+        }
+        // 👆 ================================================================== 👆
+
+        bar.className = 'fixed bottom-0 left-0 w-full bg-white border-t-4 border-slate-200 p-5 md:p-8 z-50 transition-all duration-300';
+        feedback.classList.add('hidden');
+        
+        if (type === 'materi') {
+            btn.innerHTML = 'Paham, Lanjut! ➔';
+            btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-blue-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-blue-400 border-b-[8px] border-b-blue-700 uppercase tracking-wider';
+            btn.setAttribute('onclick', 'slideSelanjutnya()');
+        } else {
+            if (slidesData[currentIndex] && slidesData[currentIndex].is_answered) {
+                bar.classList.add('bg-slate-100', 'border-slate-300');
+                btn.innerHTML = '✅ Sudah Dijawab, Lanjut ➔';
+                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-slate-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-slate-400 border-b-[8px] border-b-slate-700 uppercase tracking-wider';
                 btn.setAttribute('onclick', 'slideSelanjutnya()');
+                kunciForm(currentIndex);
             } else {
-                // 👇 JIKA JAVASCRIPT TAHU SOAL INI SUDAH DIJAWAB 👇
-                if (slidesData[currentIndex].is_answered) {
-                    bar.classList.add('bg-slate-100', 'border-slate-300');
-                    btn.innerHTML = '✅ Sudah Dijawab, Lanjut ➔';
-                    btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-slate-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-slate-400 border-b-[8px] border-b-slate-700 uppercase tracking-wider';
-                    
-                    // Paksa memanggil slide selanjutnya!
-                    btn.setAttribute('onclick', 'slideSelanjutnya()');
-                    
-                    // Pastikan input di form juga terkunci
-                    kunciForm(currentIndex);
-                } 
-                // JIKA BELUM DIJAWAB SAMA SEKALI
-                else {
-                    btn.innerHTML = 'Cek Jawaban 🔍';
-                    btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-green-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-green-400 border-b-[8px] border-b-green-700 uppercase tracking-wider';
-                    btn.setAttribute('onclick', 'cekJawaban()');
-                }
+                btn.innerHTML = 'Cek Jawaban 🔍';
+                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-green-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-green-400 border-b-[8px] border-b-green-700 uppercase tracking-wider';
+                btn.setAttribute('onclick', 'cekJawaban()');
             }
         }
+    }
 
         function cekJawaban() {
-            if (isChecking) return;
-            const currentSlide = slidesData[currentIndex];
-            const form = document.getElementById('instant-form');
-            const formData = new FormData(form);
-            
-            // 1. Ambil format jawaban standar (radio single, input angka, teks, matching)
-            let jawabanTarget = formData.get(`jawaban[${currentSlide.id}]`);
-            
-            // 2. Ambil format array (isian rumpang)
-            if (!jawabanTarget && formData.has(`jawaban[${currentSlide.id}][]`)) {
-                jawabanTarget = formData.getAll(`jawaban[${currentSlide.id}][]`).join(' | ');
-            }
-
-            // 3. Ambil format objek (Benar/Salah)
-            if (!jawabanTarget && formData.has(`jawaban[${currentSlide.id}][pilihan]`)) {
-                let pilihan = formData.get(`jawaban[${currentSlide.id}][pilihan]`);
-                let perbaikan = formData.get(`jawaban[${currentSlide.id}][perbaikan]`) || '';
-                if (pilihan) {
-                    jawabanTarget = { pilihan: pilihan, perbaikan: perbaikan };
-                }
-            }
-
-            if (!jawabanTarget || jawabanTarget === '{}' || jawabanTarget === '') {
-                showToast("Ayo, isi atau pilih jawabanmu dulu ya! 🤓");
-                return;
-            }
-
-            const btn = document.getElementById('btn-action');
-            btn.innerHTML = '⏳ Mengecek...';
-            btn.disabled = true;
-
-            fetch("{{ route('student.module.cek-instan') }}", {
-                method: 'POST',
-                headers: { 
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ question_id: currentSlide.id, jawaban: jawabanTarget })
-            })
-            .then(async res => {
-                if (!res.ok) {
-                    const errData = await res.json().catch(() => ({ message: 'Kesalahan server status ' + res.status }));
-                    throw new Error(errData.message || 'Gagal memproses jawaban.');
-                }
-                return res.json();
-            })
-            .then(data => tampilkanHasil(data))
-            .catch(err => { 
-                console.error('Detail Error:', err);
-                showToast(err.message || "Ups, Koneksi terputus."); 
-                btn.innerHTML = 'Coba Lagi 🔍'; 
-                btn.disabled = false; 
-            });
+        if (isChecking) return;
+        
+        // 👇 1. KUNCI LANGSUNG AGAR TIDAK BISA DI-SPAM KLIK 👇
+        isChecking = true; 
+        
+        const currentSlide = slidesData[currentIndex];
+        const form = document.getElementById('instant-form');
+        const formData = new FormData(form);
+        
+        let jawabanTarget = formData.get(`jawaban[${currentSlide.id}]`);
+        
+        if (!jawabanTarget && formData.has(`jawaban[${currentSlide.id}][]`)) {
+            jawabanTarget = formData.getAll(`jawaban[${currentSlide.id}][]`).join(' | ');
         }
+
+        if (!jawabanTarget && formData.has(`jawaban[${currentSlide.id}][pilihan]`)) {
+            let pilihan = formData.get(`jawaban[${currentSlide.id}][pilihan]`);
+            let perbaikan = formData.get(`jawaban[${currentSlide.id}][perbaikan]`) || '';
+            if (pilihan) jawabanTarget = { pilihan: pilihan, perbaikan: perbaikan };
+        }
+
+        if (!jawabanTarget || jawabanTarget === '{}' || jawabanTarget === '') {
+            showToast("Ayo, isi atau pilih jawabanmu dulu ya! 🤓");
+            isChecking = false; // 🔓 Buka kunci jika jawaban kosong
+            return;
+        }
+
+        const btn = document.getElementById('btn-action');
+        btn.innerHTML = '⏳ Mengecek...';
+        btn.disabled = true;
+
+        fetch("{{ route('student.module.cek-instan') }}", {
+            method: 'POST',
+            headers: { 
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ question_id: currentSlide.id, jawaban: jawabanTarget })
+        })
+        .then(async res => {
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({ message: 'Server sibuk' }));
+                throw new Error(errData.message || 'Gagal memproses jawaban.');
+            }
+            return res.json();
+        })
+        .then(data => tampilkanHasil(data))
+        .catch(err => { 
+            console.error('Detail Error:', err);
+            showToast(err.message || "Ups, Koneksi terputus."); 
+            btn.innerHTML = 'Coba Lagi 🔍'; 
+            btn.disabled = false; 
+            // 👇 2. BUKA KUNCI JIKA SERVER ERROR AGAR BISA DIKLIK LAGI 👇
+            isChecking = false; 
+        });
+    }
 
         function tampilkanHasil(data) {
-            isChecking = true;
-            
-            // 👇 TANDAI SOAL INI SUDAH DIJAWAB AGAR TERKUNCI 👇
+        isChecking = true;
+        let currentQId = slidesData[currentIndex].id;
+        let currentFormat = slidesData[currentIndex].format; // Ambil tipe soal
+        
+        const bar = document.getElementById('bottom-bar');
+        const feedback = document.getElementById('feedback-area');
+        const btn = document.getElementById('btn-action');
+        const btnLewati = document.getElementById('btn-lewati-kecil');
+        const hintArea = document.getElementById(`hint-area-${currentIndex}`);
+        const hintText = document.getElementById(`hint-text-${currentIndex}`);
+        
+        feedback.classList.remove('hidden');
+        bar.classList.remove('bg-white', 'border-slate-200');
+        btnLewati.classList.add('hidden'); // Sembunyikan lewati secara default
+
+        if (data.is_correct) {
             slidesData[currentIndex].is_answered = true; 
-            kunciForm(currentIndex); // Kunci formnya saat itu juga
+            kunciForm(currentIndex);
 
-            const bar = document.getElementById('bottom-bar');
-            const feedback = document.getElementById('feedback-area');
-            const btn = document.getElementById('btn-action');
+            if (currentFormat === 'matching') ubahWarnaMatching(currentQId); // 👈 Panggil tanpa parameter
+            bar.classList.add('bg-green-100', 'border-green-400');
+            document.getElementById('feedback-icon').innerHTML = '⭐';
+            document.getElementById('feedback-icon').className = 'w-14 h-14 rounded-full flex items-center justify-center font-black text-3xl bg-white border-4 border-green-200 text-green-500';
+            document.getElementById('feedback-title').innerText = 'Hebat Banget!';
+            document.getElementById('feedback-title').className = 'text-2xl md:text-3xl font-black uppercase tracking-wider text-green-600';
+            document.getElementById('feedback-message').innerText = data.message;
+            document.getElementById('feedback-message').className = 'font-bold text-green-700 opacity-90 text-base md:text-lg ml-1';
             
-            feedback.classList.remove('hidden');
-            bar.classList.remove('bg-white', 'border-slate-200');
-
-            if (data.is_correct) {
-                bar.classList.add('bg-green-100', 'border-green-400');
-                document.getElementById('feedback-icon').className = 'w-14 h-14 rounded-full flex items-center justify-center font-black text-3xl bg-white border-4 border-green-200 text-green-500';
-                document.getElementById('feedback-icon').innerHTML = '⭐';
-                document.getElementById('feedback-title').className = 'text-2xl md:text-3xl font-black uppercase tracking-wider text-green-600';
-                document.getElementById('feedback-title').innerText = 'Hebat Banget!';
-                document.getElementById('feedback-message').className = 'font-bold text-green-700 opacity-90 text-base md:text-lg ml-1';
-                document.getElementById('feedback-message').innerText = data.message;
-                
-                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-green-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-green-400 border-b-[8px] border-b-green-700 uppercase tracking-wider';
-            } else {
-                bar.classList.add('bg-red-100', 'border-red-400');
-                document.getElementById('feedback-icon').className = 'w-14 h-14 rounded-full flex items-center justify-center font-black text-3xl bg-white border-4 border-red-200 text-red-500';
-                document.getElementById('feedback-icon').innerHTML = '❌';
-                document.getElementById('feedback-title').className = 'text-2xl md:text-3xl font-black uppercase tracking-wider text-red-600';
-                document.getElementById('feedback-title').innerText = 'Hampir Benar';
-                document.getElementById('feedback-message').className = 'font-bold text-red-700 opacity-90 text-base md:text-lg ml-1';
-                document.getElementById('feedback-message').innerText = `Kunci: ${data.correct_answer || 'Tetap semangat, perhatikan lagi ya!'}`;
-                
-                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-red-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-red-400 border-b-[8px] border-b-red-700 uppercase tracking-wider';
-                let currentQId = slidesData[currentIndex].id;
-                let kunciBlock = document.getElementById(`kunci-jawaban-${currentQId}`);
-                if(kunciBlock) {
-                    kunciBlock.classList.remove('hidden');
-                    // Beri sedikit efek animasi pop-up
-                    kunciBlock.classList.add('animate-pulse');
-                    setTimeout(() => kunciBlock.classList.remove('animate-pulse'), 1000);
-                }
-            }
-
             btn.innerHTML = 'Lanjut ➔';
-            btn.disabled = false;
+            btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-green-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-green-400 border-b-[8px] border-b-green-700 uppercase tracking-wider';
             btn.setAttribute('onclick', 'slideSelanjutnya()');
+        } else {
+            // --- JAWABAN SALAH ---
+            if (currentFormat === 'matching') ubahWarnaMatching(currentQId);
+            bar.classList.add('bg-red-100', 'border-red-400');
+            document.getElementById('feedback-icon').innerHTML = '❌';
+            document.getElementById('feedback-icon').className = 'w-14 h-14 rounded-full flex items-center justify-center font-black text-3xl bg-white border-4 border-red-200 text-red-500';
+            document.getElementById('feedback-title').innerText = 'Hampir Benar';
+            document.getElementById('feedback-title').className = 'text-2xl md:text-3xl font-black uppercase tracking-wider text-red-600';
+            
+            let msgElement = document.getElementById('feedback-message');
+            msgElement.className = 'font-bold text-red-700 opacity-90 text-base md:text-lg ml-1'; 
+
+            if (!salahCountData[currentQId]) salahCountData[currentQId] = 0;
+            salahCountData[currentQId]++;
+            let mistakes = salahCountData[currentQId];
+
+            if (isHintEnabled) {
+                msgElement.innerText = 'Tetap semangat, perhatikan lagi ya!';
+                btn.innerHTML = 'Coba Lagi 🔄';
+                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-amber-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-amber-400 border-b-[8px] border-b-amber-700 uppercase tracking-wider';
+                btn.setAttribute('onclick', 'resetBottomBar("soal")');
+
+                if (mistakes >= 5) {
+                    
+                    // Munculkan tombol lewati kecil
+                    btnLewati.classList.remove('hidden');
+                    msgElement.innerText = 'Kamu sudah mencoba keras! Mau coba lagi atau lewati?';
+                    let teksHint = generateSmartHint(data.correct_answer, currentFormat, mistakes);
+                    showHintPopup(teksHint);
+                } else if (mistakes >= 2) {
+                    // 👇 MUNCULKAN POPUP MELAYANG 👇
+                    let teksHint = generateSmartHint(data.correct_answer, currentFormat, mistakes);
+                    showHintPopup(teksHint);
+                }
+            } else {
+                // Mode Tanpa Hint
+                msgElement.innerText = `Kunci: ${data.correct_answer || 'Tetap semangat!'}`;
+                btn.innerHTML = 'Lanjut ➔';
+                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-red-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-red-400 border-b-[8px] border-b-red-700 uppercase tracking-wider';
+                slidesData[currentIndex].is_answered = true; 
+                kunciForm(currentIndex);
+                btn.setAttribute('onclick', 'slideSelanjutnya()');
+            }
         }
+        btn.disabled = false;
+    }
 
         function slideSelanjutnya() {
             if (currentIndex < totalSlides - 1) {
@@ -728,6 +876,39 @@
                 akhiriLatihan();
             }
         }
+
+        function lewatiSoal() {
+        let currentSlide = slidesData[currentIndex];
+        const btnLewati = document.getElementById('btn-lewati-kecil');
+        btnLewati.innerText = 'Menyimpan...';
+        btnLewati.disabled = true;
+        
+        // Tembak API dengan membawa bendera "is_nyerah: true"
+        fetch("{{ route('student.module.cek-instan') }}", {
+            method: 'POST',
+            headers: { 
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ 
+                question_id: currentSlide.id, 
+                jawaban: 'NYERAH', 
+                is_nyerah: true // 🚩 Bendera khusus untuk Controller
+            })
+        })
+        .then(() => {
+            slidesData[currentIndex].is_answered = true; 
+            kunciForm(currentIndex);
+            hideHintPopup();
+            slideSelanjutnya();
+        })
+        .catch(() => {
+            showToast('Gagal melewati soal, cek internetmu ya.');
+            btnLewati.innerText = '⏭ Nyerah dan lewati soal ini';
+            btnLewati.disabled = false;
+        });
+    }
 
         // 👇 TAMBAHKAN FUNGSI MUNDUR INI 👇
         function slideMundur() {
@@ -819,6 +1000,60 @@
             setTimeout(() => { line.style.strokeDashoffset = "0"; }, 10);
         }
 
+        // 👇 FUNGSI BARU: UBAH WARNA MATCHING PER GARIS 👇
+        function ubahWarnaMatching(soalId) {
+            let kunciPasangan = window['kunciPasangan_' + soalId];
+            let hiddenInput = document.getElementById(`ans-${soalId}`);
+            
+            if (!kunciPasangan || !hiddenInput) return;
+            
+            let currentAns = JSON.parse(hiddenInput.value || "{}");
+            let svg = document.getElementById(`svg-canvas-${soalId}`);
+            
+            // Looping (Pengecekan) untuk setiap garis yang ditarik murid
+            for (let key in currentAns) {
+                let val = currentAns[key];
+                
+                // 🧠 Cek apakah pasangan spesifik ini benar atau salah?
+                let isBenar = kunciPasangan[key] === val; 
+                
+                let classBatas = isBenar ? 'border-green-500' : 'border-red-500';
+                let classBg    = isBenar ? 'bg-green-50' : 'bg-red-50';
+                let classTitik = isBenar ? 'bg-green-500' : 'bg-red-500';
+                let warnaGaris = isBenar ? '#22c55e' : '#ef4444';
+                
+                let hapusBatas = isBenar ? 'border-red-500' : 'border-green-500';
+                let hapusBg    = isBenar ? 'bg-red-50' : 'bg-green-50';
+                let hapusTitik = isBenar ? 'bg-red-500' : 'bg-green-500';
+
+                // 1. Sulap warna kotak KIRI
+                let btnKiri = document.querySelector(`.btn-kiri-${soalId}[data-nilai="${key}"]`);
+                if (btnKiri) {
+                    btnKiri.classList.remove(hapusBatas, hapusBg);
+                    btnKiri.classList.add(classBatas, classBg);
+                    let konektor = btnKiri.querySelector('.konektor-kiri');
+                    if (konektor) konektor.className = konektor.className.replace(hapusTitik, classTitik);
+                }
+                
+                // 2. Sulap warna kotak KANAN
+                let btnKanan = document.querySelector(`.btn-kanan-${soalId}[data-nilai="${val}"]`);
+                if (btnKanan) {
+                    btnKanan.classList.remove(hapusBatas, hapusBg);
+                    btnKanan.classList.add(classBatas, classBg);
+                    let konektor = btnKanan.querySelector('.konektor-kanan');
+                    if (konektor) konektor.className = konektor.className.replace(hapusTitik, classTitik);
+                }
+
+                // 3. Sulap warna GARISNYA
+                if (svg) {
+                    let cleanId = key.replace(/[^a-zA-Z0-9]/g, '');
+                    let lineId = `line-${soalId}-${cleanId}`;
+                    let line = document.getElementById(lineId);
+                    if (line) line.setAttribute('stroke', warnaGaris);
+                }
+            }
+        }
+
         // 👇 FUNGSI BARU: SIHIR GUNTING GARIS 👇
         function lepasJodoh(btn, sisi, soalId) {
             let hiddenInput = document.getElementById(`ans-${soalId}`);
@@ -858,13 +1093,14 @@
                 let btnKiri = document.querySelector(`.btn-kiri-${soalId}[data-nilai="${nilaiKiri}"]`);
                 let btnKanan = document.querySelector(`.btn-kanan-${soalId}[data-nilai="${nilaiKanan}"]`);
 
+                // 👇 PERBAIKAN: Hapus juga class merah (red-500 dan red-50) 👇
                 if (btnKiri) {
-                    btnKiri.classList.remove('border-green-500', 'bg-green-50', 'terjawab');
-                    btnKiri.querySelector('.konektor-kiri').className = btnKiri.querySelector('.konektor-kiri').className.replace('bg-green-500', 'bg-slate-200');
+                    btnKiri.classList.remove('border-green-500', 'bg-green-50', 'border-red-500', 'bg-red-50', 'terjawab');
+                    btnKiri.querySelector('.konektor-kiri').className = btnKiri.querySelector('.konektor-kiri').className.replace(/bg-(green-500|red-500)/g, 'bg-slate-200');
                 }
                 if (btnKanan) {
-                    btnKanan.classList.remove('border-green-500', 'bg-green-50', 'terjawab');
-                    btnKanan.querySelector('.konektor-kanan').className = btnKanan.querySelector('.konektor-kanan').className.replace('bg-green-500', 'bg-slate-200');
+                    btnKanan.classList.remove('border-green-500', 'bg-green-50', 'border-red-500', 'bg-red-50', 'terjawab');
+                    btnKanan.querySelector('.konektor-kanan').className = btnKanan.querySelector('.konektor-kanan').className.replace(/bg-(green-500|red-500)/g, 'bg-slate-200');
                 }
             }
         }
