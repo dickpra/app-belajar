@@ -30,7 +30,13 @@ class ListModules extends ListRecords
                 ->form([
                     Forms\Components\FileUpload::make('zip_file')
                         ->label('Upload File ZIP Modul')
-                        ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed'])
+                        ->acceptedFileTypes([
+                            'application/zip',
+                            'application/x-zip-compressed',
+                            'multipart/x-zip',
+                            'application/octet-stream'
+                        ])
+                        ->maxSize(102400)
                         ->disk('local') 
                         ->directory('temp_import')
                         ->required(),

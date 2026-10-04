@@ -387,13 +387,13 @@
                                     </a>
                                 @else
                                     @if($aIndex < count($module->activities) - 1)
-                                        <!-- 👇 TAMBAHKAN type="button" DI SINI 👇 -->
-                                        <button type="button" onclick="simpanDanLanjut({{ $index }}, '{{ acak_id($module->id) }}')" class="w-full md:w-auto md:float-right bg-green-500 hover:bg-green-400 text-white font-black text-xl py-3.5 px-8 rounded-full shadow-[0_5px_0_#16a34a] active:shadow-none active:translate-y-[5px] transition-all border-[3px] border-white">
+                                        <!-- 👇 UBAH JADI $aIndex DI SINI 👇 -->
+                                        <button type="button" onclick="simpanDanLanjut({{ $aIndex }}, '{{ acak_id($module->id) }}')" class="w-full md:w-auto md:float-right bg-green-500 hover:bg-green-400 text-white font-black text-xl py-3.5 px-8 rounded-full shadow-[0_5px_0_#16a34a] active:shadow-none active:translate-y-[5px] transition-all border-[3px] border-white">
                                             Simpan Jawaban ➔
                                         </button>
                                     @else
-                                        <!-- 👇 TAMBAHKAN type="button" DI SINI 👇 -->
-                                        <button type="button" onclick="simpanDanSelesai({{ $index }}, '{{ acak_id($module->id) }}')" class="w-full bg-orange-500 hover:bg-orange-400 text-white font-black text-xl py-3.5 rounded-full shadow-[0_5px_0_#ea580c] active:shadow-none active:translate-y-[5px] transition-all border-[3px] border-white bubbly-button">
+                                        <!-- 👇 UBAH JADI $aIndex DI SINI 👇 -->
+                                        <button type="button" onclick="simpanDanSelesai({{ $aIndex }}, '{{ acak_id($module->id) }}')" class="w-full bg-orange-500 hover:bg-orange-400 text-white font-black text-xl py-3.5 rounded-full shadow-[0_5px_0_#ea580c] active:shadow-none active:translate-y-[5px] transition-all border-[3px] border-white bubbly-button">
                                             ✨ Kumpulkan Tugas! ✨
                                         </button>
                                     @endif
@@ -908,84 +908,102 @@
         // 🕵️‍♂️ DETEKTIF VALIDASI PINTAR (ANTI SOAL KOSONG)
         // ==========================================
         function validasiForm(index) {
+            const form = document.getElementById(`form-activity-${index}`);
+            if (!form) return true;
+
             const practicePhase = document.getElementById(`practice-phase-${index}`);
             if (!practicePhase) return true;
 
-            // Tarik semua kotak soal di dalam aktivitas ini
-            const questions = practicePhase.querySelectorAll('.space-y-8 > div');
+            const formData = new FormData(form);
+            const allDivs = practicePhase.querySelectorAll('.space-y-8 > div');
+            
             let adaYangKosong = false;
             let nomorSoalKosong = null;
             let elementKosong = null;
+            let realSoalIndex = 1; 
 
-            questions.forEach((qEl, idx) => {
-                if (adaYangKosong) return; // Jika sudah ketemu 1 yang belum diisi, stop loop
+            allDivs.forEach((qEl) => {
+                if (adaYangKosong) return; // Hentikan loop jika sudah ketemu yang kosong
 
-                const radioInputs = qEl.querySelectorAll('input[type="radio"]');
-                const numberInput = qEl.querySelector('input[type="number"]');
-                const textInput = qEl.querySelector('textarea');
-                const fillInputs = qEl.querySelectorAll('input[name*="[]"]');
-                const hiddenAns = qEl.querySelector('input[id^="ans-"]');
+                // 1. Pastikan div ini adalah area Soal (bukan area catatan guru)
+                const inputSample = qEl.querySelector('[name^="jawaban["]');
+                const hasKonektor = qEl.querySelector('.konektor-kiri');
+                if (!inputSample && !hasKonektor) return; 
 
-                // 👈 1. TAMBAHKAN DETEKTOR KOTAK KIRI DI SINI
-                const konektorKiri = qEl.querySelectorAll('.konektor-kiri');
+                // 2. Ekstrak ID Soal secara akurat
+                let soalId = null;
+                if (inputSample) {
+                    const match = inputSample.name.match(/jawaban\[(\d+)\]/);
+                    if (match) soalId = match[1];
+                } else if (hasKonektor) {
+                    const hiddenAns = qEl.querySelector('input[id^="ans-"]');
+                    if (hiddenAns) soalId = hiddenAns.id.split('-')[1];
+                }
 
-                let terjawab = false;
+                if (!soalId) {
+                    realSoalIndex++;
+                    return;
+                }
 
-                // A. Tipe Pilihan Ganda & Benar/Salah
-                if (radioInputs.length > 0) {
-                    terjawab = Array.from(radioInputs).some(r => r.checked);
-                    const salahChecked = qEl.querySelector('input[value="Salah"]:checked');
-                    if (salahChecked) {
-                        const inputPerbaikan = qEl.querySelector('input[name*="[perbaikan]"]');
-                        if (inputPerbaikan && !inputPerbaikan.value.trim()) {
-                            terjawab = false;
-                        }
-                    }
+                let isTerjawab = false;
+
+                // 3. INTEROGASI BROWSER MENGGUNAKAN FORM DATA API
+                // A. Tipe Isian Rumpang (Array Banyak Kotak)
+                if (qEl.querySelector(`input[name="jawaban[${soalId}][]"]`)) {
+                    const values = formData.getAll(`jawaban[${soalId}][]`);
+                    if (values.length > 0 && values.every(v => v.trim() !== '')) isTerjawab = true;
                 } 
-                // 👈 2. UBAH LOGIKA TIPE MENJODOHKAN (MATCHING) MENJADI SEPERTI INI:
-                else if (konektorKiri.length > 0) {
-                    // Jika murid sudah menarik minimal 1 garis (hiddenAns tercipta)
-                    if (hiddenAns) {
-                        try {
-                            const val = JSON.parse(hiddenAns.value || '{}');
-                            // Syarat terjawab: Jumlah garis yang ditarik HARUS SAMA dengan jumlah kotak di kiri
-                            terjawab = Object.keys(val).length > 0 && Object.keys(val).length === konektorKiri.length;
-                        } catch(e) {
-                            terjawab = false;
-                        }
-                    } else {
-                        // Jika hiddenAns belum ada sama sekali, berarti murid melewatinya!
-                        terjawab = false; 
+                // B. Tipe Benar / Salah (True False)
+                else if (qEl.querySelector(`input[name="jawaban[${soalId}][pilihan]"]`)) {
+                    const pilihan = formData.get(`jawaban[${soalId}][pilihan]`);
+                    if (pilihan === 'Benar') {
+                        isTerjawab = true;
+                    } else if (pilihan === 'Salah') {
+                        const perbaikan = formData.get(`jawaban[${soalId}][perbaikan]`);
+                        if (perbaikan && perbaikan.trim() !== '') isTerjawab = true;
                     }
                 }
-                // C. Tipe Isian Rumpang (Complex Fill)
-                else if (fillInputs.length > 0) {
-                    terjawab = Array.from(fillInputs).every(inp => inp.value.trim() !== '');
+                // C. Tipe Menjodohkan (Matching)
+                else if (hasKonektor) {
+                    const jsonStr = formData.get(`jawaban[${soalId}]`);
+                    if (jsonStr) {
+                        try {
+                            const parsed = JSON.parse(jsonStr);
+                            if (Object.keys(parsed).length > 0) isTerjawab = true; // Lulus asal ada 1 garis
+                        } catch(e) {}
+                    }
                 }
-                // D. Tipe Input Angka
-                else if (numberInput) {
-                    terjawab = numberInput.value.trim() !== '';
-                }
-                // E. Tipe Input Teks
-                else if (textInput) {
-                    terjawab = textInput.value.trim() !== '';
-                } else {
-                    terjawab = true;
+                // D. Tipe Standar (Isian Teks, Angka, Pilihan Ganda Biasa)
+                else {
+                    const val = formData.get(`jawaban[${soalId}]`);
+                    if (val !== null && val.trim() !== '') isTerjawab = true;
                 }
 
-                if (!terjawab) {
+                if (!isTerjawab) {
                     adaYangKosong = true;
-                    nomorSoalKosong = idx + 1;
+                    nomorSoalKosong = realSoalIndex;
                     elementKosong = qEl;
                 }
+                realSoalIndex++;
             });
 
+            // 4. EKSEKUSI SCROLL PAKSA & MUNCULKAN ERROR
             if (adaYangKosong) {
-                // Meluncurkan layar ke soal yang belum dijawab & beri efek kilau merah
-                elementKosong.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                elementKosong.classList.add('ring-4', 'ring-red-400', 'transition-all');
-                setTimeout(() => elementKosong.classList.remove('ring-4', 'ring-red-400'), 3000);
-
+                if (elementKosong) {
+                    // 👇 PENYELESAIAN BUG SCROLL UNTUK UI ANDA 👇
+                    const mainContent = document.getElementById('main-content');
+                    if (mainContent) {
+                        const offsetTop = elementKosong.offsetTop - 30; // Sisakan ruang 30px di atas
+                        mainContent.scrollTo({ top: offsetTop, behavior: 'smooth' });
+                    } else {
+                        elementKosong.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    
+                    // Efek berkedip merah
+                    elementKosong.classList.add('ring-4', 'ring-red-400', 'transition-all', 'rounded-3xl');
+                    setTimeout(() => elementKosong.classList.remove('ring-4', 'ring-red-400', 'rounded-3xl'), 3000);
+                }
+                
                 showWarningToast(`Lengkapi dulu Soal Nomor ${nomorSoalKosong} sebelum lanjut ya! 🎯`);
                 return false;
             }

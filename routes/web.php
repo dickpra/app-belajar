@@ -54,7 +54,12 @@ Route::bind('hash_modul', function ($value) {
 // AREA AUTENTIKASI MURID (Halaman Depan)
 // ========================================================
 Route::get('/', [StudentAuthController::class, 'showLogin'])->name('student.login');
-Route::post('/login-process', [StudentAuthController::class, 'processLogin'])->name('student.login.process');
+
+// 👇 TAMBAHKAN THROTTLE:10,1 DI SINI 👇
+Route::post('/login-process', [StudentAuthController::class, 'processLogin'])
+    ->middleware('throttle:10,1') 
+    ->name('student.login.process');
+    
 Route::get('/logout', [StudentAuthController::class, 'logout'])->name('student.logout');
 
 // ========================================================
@@ -114,20 +119,26 @@ Route::prefix('ruang-belajar')->middleware([CekLoginMurid::class])->group(functi
 
     // 👇 SEMUA {id} DI BAWAH INI KITA GANTI JADI {hash_modul} 👇
     
-    // Endpoint Verifikasi PIN Modul
-    Route::post('/modul/{hash_modul}/verifikasi-pin', [StudentModuleController::class, 'verifyPin'])->name('student.verify_pin');
+    // 👇 BUNGKUS SEMUA RUTE POST DENGAN THROTTLE (Maks 40 klik / menit) 👇
+    Route::middleware(['throttle:40,1'])->group(function () {
+        
+        // Endpoint Verifikasi PIN Modul
+        Route::post('/modul/{hash_modul}/verifikasi-pin', [StudentModuleController::class, 'verifyPin'])->name('student.verify_pin');
 
-    // INSTANT ROUTE DUOLINGO (Ini tidak butuh ID di URL karena JSON body)
-    Route::post('/modul/cek-instan', [StudentModuleController::class, 'cekJawabanInstan'])->name('student.module.cek-instan');
+        // INSTANT ROUTE DUOLINGO 
+        Route::post('/modul/cek-instan', [StudentModuleController::class, 'cekJawabanInstan'])->name('student.module.cek-instan');
 
-    // Selesai Instan
-    Route::post('/modul/{hash_modul}/selesai-instan', [\App\Http\Controllers\StudentModuleController::class, 'selesaiInstan'])->name('student.module.selesai-instan');
+        // Selesai Instan
+        Route::post('/modul/{hash_modul}/selesai-instan', [\App\Http\Controllers\StudentModuleController::class, 'selesaiInstan'])->name('student.module.selesai-instan');
+        
+        // Endpoint Menyimpan Jawaban (LKS)
+        Route::post('/modul/{hash_modul}/simpan-aktivitas', [StudentModuleController::class, 'saveActivity'])->name('student.save_activity');
+        
+    });
+    // 👆 ============================================================== 👆
 
-    // Halaman Mengerjakan Modul Utama
+    // Halaman Mengerjakan Modul Utama (TIDAK PERLU THROTTLE AGAR HALAMAN TETAP BISA DIBUKA)
     Route::get('/modul/{hash_modul}', [StudentModuleController::class, 'show'])->name('student.module');
-    
-    // Endpoint Menyimpan Jawaban (LKS)
-    Route::post('/modul/{hash_modul}/simpan-aktivitas', [StudentModuleController::class, 'saveActivity'])->name('student.save_activity');
 
     // --------------------------------------------------------
     

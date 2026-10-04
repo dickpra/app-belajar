@@ -89,7 +89,7 @@ class EvaluationResource extends Resource
             }
             
             // 2. Tentukan Predikat berdasarkan rata-rata
-            $predikat = 'Belum Lulus 📉';
+            $predikat = 'Belajar lebih Giat lagi 📉';
             $warnaPredikat = '#f43f5e'; // Merah
             
             if ($rataRata >= 90) {

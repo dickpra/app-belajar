@@ -109,7 +109,7 @@
             <div class="flex-1">
                 <h4 class="font-black text-sm text-amber-500 uppercase tracking-widest mb-1">Petunjuk</h4>
                 <!-- TEKS PUZZLE AKAN MASUK KE SINI -->
-                <p id="hint-popup-text" class="font-bold text-amber-800 text-base md:text-lg tracking-[0.1em] leading-tight"></p>
+                <p id="hint-popup-text" class="font-bold text-amber-800 text-sm md:text-lg tracking-[0.1em] leading-tight"></p>
             </div>
         </div>
     </div>
@@ -216,7 +216,7 @@
                                 </div>
                             @endif
 
-                            <div class="prose prose-blue prose-xl font-bold text-slate-700 mx-auto leading-relaxed w-full max-w-2xl text-center mb-8">
+                            <div class="prose prose-blue prose-base md:prose-xl text-slate-700 mx-auto leading-relaxed w-full max-w-2xl text-center mb-6 md:mb-8">
                                 {!! renderPrivateImages($slide['data']['konten_tahapan'] ?? '') !!}
                             </div>
 
@@ -318,7 +318,7 @@
 
                                 <!-- AREA TEKS SOAL (TRIX) -->
                                 <div class="w-full {{ $isSideBySide && !empty($question->image) ? 'md:w-1/2 text-left' : 'max-w-2xl text-center' }} flex flex-col justify-center">
-                                    <div class="prose prose-blue prose-2xl font-black text-slate-800 leading-relaxed mx-auto w-full">
+                                    <div class="prose prose-blue prose-lg md:prose-2xl text-slate-800 leading-relaxed mx-auto w-full font-medium">
                                         {!! renderPrivateImages($question->question_text) !!}
                                     </div>
                                 </div>
@@ -423,7 +423,8 @@
             popup.classList.add('opacity-0', '-translate-y-24', 'pointer-events-none');
         }
 
-                // 👇 1. KITA PISAHKAN MESIN PUZZLE AGAR BISA DIPAKAI ULANG 👇
+        // 👇 1. KITA PISAHKAN MESIN PUZZLE AGAR BISA DIPAKAI ULANG 👇
+        // 👇 FUNGSI MESIN PUZZLE YANG LEBIH CERDAS 👇
         function buatTeksPuzzle(kunci, mistakes) {
             if (!kunci) return 'Ayo teliti lagi!';
             let kataArray = kunci.toString().toUpperCase().split(' ');
@@ -431,15 +432,27 @@
             let hasilPuzzle = kataArray.map(kata => {
                 let chars = kata.split('');
                 return chars.map((huruf, index) => {
+                    // KESALAHAN KE-2: Selalu garis bawah semuanya
                     if (mistakes === 2) return '_';
+                    
+                    // KESALAHAN KE-3: Buka sedikit
                     if (mistakes === 3) {
-                        if (index === 0 || index === chars.length - 1) return huruf;
+                        if (chars.length === 1) return '_'; // Kalau cuma 1 digit (misal: "5"), tetap rahasiakan!
+                        if (chars.length === 2 && index === 0) return huruf; // Kalau 2 digit (misal: "21"), buka depannya saja -> "2 _"
+                        if (chars.length > 2 && (index === 0 || index === chars.length - 1)) return huruf; // Buka ujung & ujung
                         return '_';
                     }
+                    
+                    // KESALAHAN KE-4: Buka lebih banyak
                     if (mistakes >= 4) {
+                        if (chars.length === 1) return '_'; // Tetap biarkan mikir untuk 1 digit
+                        if (chars.length === 2 && index === 0) return huruf; // Tetap "2 _" agar digit terakhir ditebak sendiri
+                        
+                        // Untuk kata panjang, buka huruf depan, belakang, dan posisi genap
                         if (index === 0 || index === chars.length - 1 || index % 2 === 0) return huruf;
                         return '_';
                     }
+                    
                     return '_';
                 }).join(' '); 
             });
@@ -712,19 +725,19 @@
         feedback.classList.add('hidden');
         
         if (type === 'materi') {
-            btn.innerHTML = 'Paham, Lanjut! ➔';
-            btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-blue-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-blue-400 border-b-[8px] border-b-blue-700 uppercase tracking-wider';
-            btn.setAttribute('onclick', 'slideSelanjutnya()');
+        btn.innerHTML = 'Paham, Lanjut! ➔';
+        btn.className = 'btn-3d w-full md:w-auto min-w-[200px] bg-blue-500 text-white font-black text-lg md:text-2xl py-3 md:py-5 px-5 md:px-8 rounded-xl md:rounded-2xl border-2 border-blue-400 border-b-[6px] md:border-b-[8px] border-b-blue-700 uppercase tracking-wider';
+        btn.setAttribute('onclick', 'slideSelanjutnya()');
         } else {
             if (slidesData[currentIndex] && slidesData[currentIndex].is_answered) {
                 bar.classList.add('bg-slate-100', 'border-slate-300');
-                btn.innerHTML = '✅ Sudah Dijawab, Lanjut ➔';
-                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-slate-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-slate-400 border-b-[8px] border-b-slate-700 uppercase tracking-wider';
+                btn.innerHTML = '✅ Lanjut ➔';
+                btn.className = 'btn-3d w-full md:w-auto min-w-[200px] bg-slate-500 text-white font-black text-lg md:text-2xl py-3 md:py-5 px-5 md:px-8 rounded-xl md:rounded-2xl border-2 border-slate-400 border-b-[6px] md:border-b-[8px] border-b-slate-700 uppercase tracking-wider';
                 btn.setAttribute('onclick', 'slideSelanjutnya()');
                 kunciForm(currentIndex);
             } else {
                 btn.innerHTML = 'Cek Jawaban 🔍';
-                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-green-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-green-400 border-b-[8px] border-b-green-700 uppercase tracking-wider';
+                btn.className = 'btn-3d w-full md:w-auto min-w-[200px] bg-green-500 text-white font-black text-lg md:text-2xl py-3 md:py-5 px-5 md:px-8 rounded-xl md:rounded-2xl border-2 border-green-400 border-b-[6px] md:border-b-[8px] border-b-green-700 uppercase tracking-wider';
                 btn.setAttribute('onclick', 'cekJawaban()');
             }
         }
@@ -814,12 +827,12 @@
             document.getElementById('feedback-icon').innerHTML = '⭐';
             document.getElementById('feedback-icon').className = 'w-14 h-14 rounded-full flex items-center justify-center font-black text-3xl bg-white border-4 border-green-200 text-green-500';
             document.getElementById('feedback-title').innerText = 'Hebat Banget!';
-            document.getElementById('feedback-title').className = 'text-2xl md:text-3xl font-black uppercase tracking-wider text-green-600';
-            document.getElementById('feedback-message').innerText = data.message;
-            document.getElementById('feedback-message').className = 'font-bold text-green-700 opacity-90 text-base md:text-lg ml-1';
+            document.getElementById('feedback-title').className = 'text-xl md:text-3xl font-black uppercase tracking-wider text-green-600';            document.getElementById('feedback-message').innerText = data.message;
+            document.getElementById('feedback-message').className = 'font-bold text-green-700 opacity-90 text-sm md:text-lg ml-1';            
+            
             
             btn.innerHTML = 'Lanjut ➔';
-            btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-green-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-green-400 border-b-[8px] border-b-green-700 uppercase tracking-wider';
+            btn.className = 'btn-3d w-full md:w-auto min-w-[200px] bg-green-500 text-white font-black text-lg md:text-2xl py-3 md:py-5 px-5 md:px-8 rounded-xl md:rounded-2xl border-2 border-green-400 border-b-[6px] md:border-b-[8px] border-b-green-700 uppercase tracking-wider';
             btn.setAttribute('onclick', 'slideSelanjutnya()');
         } else {
             // --- JAWABAN SALAH ---
@@ -828,10 +841,10 @@
             document.getElementById('feedback-icon').innerHTML = '❌';
             document.getElementById('feedback-icon').className = 'w-14 h-14 rounded-full flex items-center justify-center font-black text-3xl bg-white border-4 border-red-200 text-red-500';
             document.getElementById('feedback-title').innerText = 'Hampir Benar';
-            document.getElementById('feedback-title').className = 'text-2xl md:text-3xl font-black uppercase tracking-wider text-red-600';
-            
+            document.getElementById('feedback-title').className = 'text-xl md:text-3xl font-black uppercase tracking-wider text-red-600';
+        
             let msgElement = document.getElementById('feedback-message');
-            msgElement.className = 'font-bold text-red-700 opacity-90 text-base md:text-lg ml-1'; 
+            msgElement.className = 'font-bold text-red-700 opacity-90 text-sm md:text-lg ml-1';
 
             if (!salahCountData[currentQId]) salahCountData[currentQId] = 0;
             salahCountData[currentQId]++;
@@ -840,7 +853,7 @@
             if (isHintEnabled) {
                 msgElement.innerText = 'Tetap semangat, perhatikan lagi ya!';
                 btn.innerHTML = 'Coba Lagi 🔄';
-                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-amber-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-amber-400 border-b-[8px] border-b-amber-700 uppercase tracking-wider';
+                btn.className = 'btn-3d w-full md:w-auto min-w-[200px] bg-amber-500 text-white font-black text-lg md:text-2xl py-3 md:py-5 px-5 md:px-8 rounded-xl md:rounded-2xl border-2 border-amber-400 border-b-[6px] md:border-b-[8px] border-b-amber-700 uppercase tracking-wider';
                 btn.setAttribute('onclick', 'resetBottomBar("soal")');
 
                 if (mistakes >= 5) {
@@ -859,7 +872,7 @@
                 // Mode Tanpa Hint
                 msgElement.innerText = `Kunci: ${data.correct_answer || 'Tetap semangat!'}`;
                 btn.innerHTML = 'Lanjut ➔';
-                btn.className = 'btn-3d w-full md:w-auto min-w-[220px] bg-red-500 text-white font-black text-2xl py-5 px-8 rounded-2xl border-2 border-red-400 border-b-[8px] border-b-red-700 uppercase tracking-wider';
+                btn.className = 'btn-3d w-full md:w-auto min-w-[200px] bg-red-500 text-white font-black text-lg md:text-2xl py-3 md:py-5 px-5 md:px-8 rounded-xl md:rounded-2xl border-2 border-red-400 border-b-[6px] md:border-b-[8px] border-b-red-700 uppercase tracking-wider';
                 slidesData[currentIndex].is_answered = true; 
                 kunciForm(currentIndex);
                 btn.setAttribute('onclick', 'slideSelanjutnya()');
