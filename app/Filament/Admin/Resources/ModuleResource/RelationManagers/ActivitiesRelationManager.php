@@ -182,22 +182,22 @@ class ActivitiesRelationManager extends RelationManager
                         ->icon('heroicon-o-pencil-square')
                         ->schema([
                             
-                            Forms\Components\Section::make('⚡ MODE LATIHAN INSTAN AKTIF')
-                                ->schema([
-                                    Forms\Components\Placeholder::make('info_instan')
-                                        ->hiddenLabel()
-                                        ->content(new HtmlString('
-                                            <div style="color: #b45309; font-size: 0.95rem; font-weight: bold;">
-                                                Karena Anda mengaktifkan Mode Instan (Ala Duolingo) di pengaturan Modul:
-                                                <ul style="list-style-type: disc; margin-left: 1.5rem; margin-top: 0.5rem; color: #92400e;">
-                                                    <li>Tipe soal "Isian Rumpang" (Complex Fill) <strong>dikunci/dimatikan</strong> karena rentan dinilai salah oleh mesin jika ada typo.</li>
-                                                    <li>Kunci Jawaban <strong>WAJIB</strong> diisi agar mesin bisa memberikan nilai di tempat.</li>
-                                                </ul>
-                                            </div>
-                                        ')),
-                                ])
-                                ->visible(fn (RelationManager $livewire) => $livewire->getOwnerRecord()->is_instant_mode)
-                                ->extraAttributes(['style' => 'background-color: #fffbeb; border: 2px solid #f59e0b;']),
+                            // Forms\Components\Section::make('⚡ MODE LATIHAN INSTAN AKTIF')
+                            //     ->schema([
+                            //         Forms\Components\Placeholder::make('info_instan')
+                            //             ->hiddenLabel()
+                            //             ->content(new HtmlString('
+                            //                 <div style="color: #b45309; font-size: 0.95rem; font-weight: bold;">
+                            //                     Karena Anda mengaktifkan Mode Instan (Ala Duolingo) di pengaturan Modul:
+                            //                     <ul style="list-style-type: disc; margin-left: 1.5rem; margin-top: 0.5rem; color: #92400e;">
+                            //                         <li>Tipe soal "Isian Rumpang" (Complex Fill) <strong>dikunci/dimatikan</strong> karena rentan dinilai salah oleh mesin jika ada typo.</li>
+                            //                         <li>Kunci Jawaban <strong>WAJIB</strong> diisi agar mesin bisa memberikan nilai di tempat.</li>
+                            //                     </ul>
+                            //                 </div>
+                            //             ')),
+                            //     ])
+                            //     ->visible(fn (RelationManager $livewire) => $livewire->getOwnerRecord()->is_instant_mode)
+                            //     ->extraAttributes(['style' => 'background-color: #fffbeb; border: 2px solid #f59e0b;']),
                             
                             Forms\Components\Section::make('🤖 Panduan Input Soal Adaptif (AI)')
                                 ->schema([
@@ -245,12 +245,15 @@ class ActivitiesRelationManager extends RelationManager
                                 ->schema([
                                     Forms\Components\Grid::make(3)->schema([
                                         
+                                        // Forms\Components\Select::make('answer_format')
+                                        //     ->options(config('soal.tipe')) 
+                                        //     ->disableOptionWhen(fn (string $value, RelationManager $livewire) => 
+                                        //         $livewire->getOwnerRecord()->is_instant_mode && in_array($value, ['complex_fill'])
+                                        //     )
+                                        //     ->required()->live()->label('Tipe Jawaban'),
                                         Forms\Components\Select::make('answer_format')
-                                            ->options(config('soal.tipe')) 
-                                            ->disableOptionWhen(fn (string $value, RelationManager $livewire) => 
-                                                $livewire->getOwnerRecord()->is_instant_mode && in_array($value, ['complex_fill'])
-                                            )
-                                            ->required()->live()->label('Tipe Jawaban'),
+                                                ->options(config('soal.tipe'))
+                                                ->required()->live()->label('Tipe Jawaban'),
                                         
                                         Forms\Components\Select::make('difficulty')
                                             ->options(['easy'=>'🌟 Mudah', 'medium'=>'⭐⭐ Sedang', 'hard'=>'🔥 Sulit (HOTS)'])
@@ -323,15 +326,9 @@ class ActivitiesRelationManager extends RelationManager
                                             
                                             Forms\Components\TextInput::make('correct_answer')
                                                 ->label('Kunci Jawaban Pasti')
-                                                ->helperText(fn (RelationManager $livewire) => 
-                                                    $livewire->getOwnerRecord()->is_instant_mode 
-                                                    ? '⚠️ MODE INSTAN: Wajib diisi agar mesin bisa menilai!' 
-                                                    : 'Opsional (Hanya untuk referensi).'
-                                                )
+                                                ->helperText('Tuliskan kunci jawaban yang mutlak.')
                                                 ->visible(fn (Forms\Get $get) => in_array($get('answer_format'), ['number_input', 'text_input']))
-                                                ->required(fn (Forms\Get $get, RelationManager $livewire) => 
-                                                    $livewire->getOwnerRecord()->is_instant_mode && in_array($get('answer_format'), ['number_input', 'text_input'])
-                                                ),
+                                                ->required(fn (Forms\Get $get) => in_array($get('answer_format'), ['number_input', 'text_input'])),
 
                                             Forms\Components\Select::make('true_false_answer')
                                                 ->label('Kunci Jawaban yang Tepat')

@@ -166,6 +166,21 @@ Route::prefix('ruang-belajar')->middleware([CekLoginMurid::class])->group(functi
 
         return view('student.ucapan-guru', compact('ucapan')); 
     })->name('student.ucapan');
+
+    // ========================================================
+    // RUTE E-SIGN (KAMUS ISYARAT)
+    // ========================================================
+    Route::get('/e-sign', function () {
+        // Ambil semua kata, urutkan A-Z
+        $words = \App\Models\SignDictionary::orderBy('word', 'asc')->get();
+        
+        // Kelompokkan berdasarkan HURUF PERTAMA (A, B, C, dst)
+        $groupedWords = $words->groupBy(function($item) {
+            return strtoupper(substr($item->word, 0, 1));
+        });
+
+        return view('student.e-sign', compact('groupedWords'));
+    })->name('student.esign');
 });
 
 // ========================================================

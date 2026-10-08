@@ -318,21 +318,35 @@
 
                                 <!-- AREA TEKS SOAL (TRIX) -->
                                 <div class="w-full {{ $isSideBySide && !empty($question->image) ? 'md:w-1/2 text-left' : 'max-w-2xl text-center' }} flex flex-col justify-center">
-                                    <div class="prose prose-blue prose-lg md:prose-2xl text-slate-800 leading-relaxed mx-auto w-full font-medium">
-                                        {!! renderPrivateImages($question->question_text) !!}
-                                    </div>
+                                    
+                                    @if($question->answer_format === 'complex_fill')
+                                        {{-- 🎯 Panggil komponen Isian Rumpang dengan mengirim data riwayat jawaban --}}
+                                        @include('student.tipe_soal.complex_fill', [
+                                            'question' => $question,
+                                            'existingAnswers' => $existingAnswers ?? [],
+                                            'isCompleted' => $slide['is_answered'] ?? false
+                                        ])
+                                    @else
+                                        <div class="prose prose-blue prose-lg md:prose-2xl text-slate-800 leading-relaxed mx-auto w-full font-medium">
+                                            {!! renderPrivateImages($question->question_text) !!}
+                                        </div>
+                                    @endif
+                                    
                                 </div>
 
                             </div>
 
                             <!-- 3. JAWABAN (OPSI / ISIAN / MENJODOHKAN) -->
-                            <div class="mt-8 border-t-4 border-dashed border-slate-200 pt-8 max-w-2xl mx-auto w-full">
-                                @includeIf('student.tipe_soal.' . $question->answer_format, [
-                                    'question' => $question, 
-                                    'existingAnswers' => $existingAnswers ?? [], 
-                                    'isCompleted' => $slide['is_answered'] ?? false
-                                ])
-                            </div>
+                            {{-- Sembunyikan area bawah khusus Isian Rumpang karena jawabannya sudah menyatu di atas --}}
+                            @if($question->answer_format !== 'complex_fill')
+                                <div class="mt-8 border-t-4 border-dashed border-slate-200 pt-8 max-w-2xl mx-auto w-full">
+                                    @includeIf('student.tipe_soal.' . $question->answer_format, [
+                                        'question' => $question, 
+                                        'existingAnswers' => $existingAnswers ?? [], 
+                                        'isCompleted' => $slide['is_answered'] ?? false
+                                    ])
+                                </div>
+                            @endif
 
                         @endif
                     </div>
@@ -744,63 +758,83 @@
     }
 
         function cekJawaban() {
-        if (isChecking) return;
-        
-        // 👇 1. KUNCI LANGSUNG AGAR TIDAK BISA DI-SPAM KLIK 👇
-        isChecking = true; 
-        
-        const currentSlide = slidesData[currentIndex];
-        const form = document.getElementById('instant-form');
-        const formData = new FormData(form);
-        
-        let jawabanTarget = formData.get(`jawaban[${currentSlide.id}]`);
-        
-        if (!jawabanTarget && formData.has(`jawaban[${currentSlide.id}][]`)) {
-            jawabanTarget = formData.getAll(`jawaban[${currentSlide.id}][]`).join(' | ');
-        }
-
-        if (!jawabanTarget && formData.has(`jawaban[${currentSlide.id}][pilihan]`)) {
-            let pilihan = formData.get(`jawaban[${currentSlide.id}][pilihan]`);
-            let perbaikan = formData.get(`jawaban[${currentSlide.id}][perbaikan]`) || '';
-            if (pilihan) jawabanTarget = { pilihan: pilihan, perbaikan: perbaikan };
-        }
-
-        if (!jawabanTarget || jawabanTarget === '{}' || jawabanTarget === '') {
-            showToast("Ayo, isi atau pilih jawabanmu dulu ya! 🤓");
-            isChecking = false; // 🔓 Buka kunci jika jawaban kosong
-            return;
-        }
-
-        const btn = document.getElementById('btn-action');
-        btn.innerHTML = '⏳ Mengecek...';
-        btn.disabled = true;
-
-        fetch("{{ route('student.module.cek-instan') }}", {
-            method: 'POST',
-            headers: { 
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ question_id: currentSlide.id, jawaban: jawabanTarget })
-        })
-        .then(async res => {
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({ message: 'Server sibuk' }));
-                throw new Error(errData.message || 'Gagal memproses jawaban.');
+            if (isChecking) return;
+            
+            // 👇 1. KUNCI LANGSUNG AGAR TIDAK BISA DI-SPAM KLIK 👇
+            isChecking = true; 
+            
+            const currentSlide = slidesData[currentIndex];
+            const form = document.getElementById('instant-form');
+            const formData = new FormData(form);
+            
+            let jawabanTarget = formData.get(`jawaban[${currentSlide.id}]`);
+            
+            // 👇 2. PENANGANAN KHUSUS ISIAN RUMPANG (ARRAY) 👇
+            if (!jawabanTarget && formData.has(`jawaban[${currentSlide.id}][]`)) {
+                let values = formData.getAll(`jawaban[${currentSlide.id}][]`);
+                
+                // Cek apakah ada satu saja kotak yang dibiarkan kosong stringnya
+                let adaKosong = values.some(val => val.trim() === '');
+                
+                if (adaKosong) {
+                    showToast("Isi semua titik-titik yang kosong dulu ya! 🎯");
+                    isChecking = false; // Buka kunci lagi
+                    return;
+                }
+                
+                // Ubah jadi format Array JSON String agar diproses sempurna oleh Controller
+                jawabanTarget = JSON.stringify(values);
             }
-            return res.json();
-        })
-        .then(data => tampilkanHasil(data))
-        .catch(err => { 
-            console.error('Detail Error:', err);
-            showToast(err.message || "Ups, Koneksi terputus."); 
-            btn.innerHTML = 'Coba Lagi 🔍'; 
-            btn.disabled = false; 
-            // 👇 2. BUKA KUNCI JIKA SERVER ERROR AGAR BISA DIKLIK LAGI 👇
-            isChecking = false; 
-        });
-    }
+
+            // 👇 3. PENANGANAN BENAR/SALAH 👇
+            if (!jawabanTarget && formData.has(`jawaban[${currentSlide.id}][pilihan]`)) {
+                let pilihan = formData.get(`jawaban[${currentSlide.id}][pilihan]`);
+                let perbaikan = formData.get(`jawaban[${currentSlide.id}][perbaikan]`) || '';
+                
+                if (pilihan === 'Salah' && perbaikan.trim() === '') {
+                    showToast("Jangan lupa ketik perbaikannya ya! 🤓");
+                    isChecking = false;
+                    return;
+                }
+                if (pilihan) jawabanTarget = { pilihan: pilihan, perbaikan: perbaikan };
+            }
+
+            // 🚨 4. VALIDASI FINAL UMUM 🚨
+            if (!jawabanTarget || jawabanTarget === '{}' || jawabanTarget === '') {
+                showToast("Ayo, isi atau pilih jawabanmu dulu ya! 🤓");
+                isChecking = false; 
+                return;
+            }
+
+            const btn = document.getElementById('btn-action');
+            btn.innerHTML = '⏳ Mengecek...';
+            btn.disabled = true;
+
+            fetch("{{ route('student.module.cek-instan') }}", {
+                method: 'POST',
+                headers: { 
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ question_id: currentSlide.id, jawaban: jawabanTarget })
+            })
+            .then(async res => {
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({ message: 'Server sibuk' }));
+                    throw new Error(errData.message || 'Gagal memproses jawaban.');
+                }
+                return res.json();
+            })
+            .then(data => tampilkanHasil(data))
+            .catch(err => { 
+                console.error('Detail Error:', err);
+                showToast(err.message || "Ups, Koneksi terputus."); 
+                btn.innerHTML = 'Coba Lagi 🔍'; 
+                btn.disabled = false; 
+                isChecking = false; 
+            });
+        }
 
         function tampilkanHasil(data) {
         isChecking = true;

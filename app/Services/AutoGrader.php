@@ -79,13 +79,58 @@ class AutoGrader
     {
         if (empty($jawabanMurid)) return 0;
         
-        // Tipe soal yang ditangani manual di Controller (bypass)
-        if (in_array($format, ['matching', 'complex_fill'])) return null; 
+        // HANYA Matching yang di-bypass (dikoreksi mandiri di Controller)
+        // complex_fill SUDAH DICABUT DARI SINI
+        if (in_array($format, ['matching'])) return null; 
 
+        // ========================================================
+        // 👇 KOREKSI KHUSUS ISIAN RUMPANG (Banyak Kotak) 👇
+        // ========================================================
+        if ($format === 'complex_fill') {
+            // 1. Ubah format jawaban murid menjadi Array
+            $jawabanArray = is_string($jawabanMurid) ? json_decode($jawabanMurid, true) : $jawabanMurid;
+            
+            // 2. Sedot Kunci Jawaban langsung dari kolom Repeater Options
+            $options = is_string($question->options) ? json_decode($question->options, true) : ($question->options ?? []);
+            $kunciArray = [];
+            
+            if (is_array($options)) {
+                foreach ($options as $opt) {
+                    $kunciArray[] = $opt['teks_pilihan'] ?? '';
+                }
+            }
+            
+            // 3. Mulai mengoreksi kotak per kotak
+            if (is_array($jawabanArray)) {
+                $benar = 0;
+                $totalRumpang = count($kunciArray);
+                
+                foreach ($jawabanArray as $idx => $jwb) {
+                    $kunciAsli = $kunciArray[$idx] ?? '';
+                    
+                    // Gunakan toleransi typo (seolah-olah ini text_input biasa)
+                    if (self::cekToleransiTeks($jwb, $kunciAsli, 'text_input')) {
+                        $benar++;
+                    }
+                }
+                
+                // Mode Instan: Semua kotak harus terisi dengan benar agar lulus
+                if ($totalRumpang > 0 && $benar === $totalRumpang) {
+                    return 100;
+                }
+                
+                return 0; // Jika ada 1 saja yang salah, langsung salahkan semuanya
+            }
+        }
+
+        // ========================================================
+        // 👇 KOREKSI UNTUK SOAL TEKS / ANGKA / PILIHAN GANDA 👇
+        // ========================================================
+        
         // Ambil kunci mentah
         $kunciMentah = self::getKunciJawaban($format, $question);
         
-        // 👇 LEMPAR KE MESIN KOREKSI CERDAS KITA 👇
+        // Lempar ke mesin toleransi cerdas
         if (self::cekToleransiTeks($jawabanMurid, $kunciMentah, $format)) {
             return 100;
         }

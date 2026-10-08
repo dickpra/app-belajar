@@ -42,6 +42,15 @@
                 <span class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest mt-0 {{ request()->routeIs('student.panduan') ? 'text-amber-600 mt-1' : 'text-slate-400 group-hover:text-amber-500' }}">Panduan</span>
             </a>
 
+            <a href="{{ route('student.esign') }}" 
+               onclick="event.preventDefault(); window.location.replace(this.href);"
+               class="flex flex-col items-center gap-1 group transform transition-transform active:scale-90 {{ request()->routeIs('student.esign') ? 'opacity-100' : 'opacity-60 hover:opacity-100' }}">
+                <div class="p-1.5 transition-all {{ request()->routeIs('student.esign') ? 'relative bg-green-100 p-2 rounded-2xl border-[3px] border-green-200 shadow-sm -mt-4' : '' }}">
+                    <span class="text-xl sm:text-2xl block {{ request()->routeIs('student.esign') ? 'drop-shadow-sm' : 'grayscale group-hover:grayscale-0' }}">📝</span>
+                </div>
+                <span class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest mt-0 {{ request()->routeIs('student.esign') ? 'text-green-600 mt-1' : 'text-slate-400 group-hover:text-green-500' }}">E-Sign</span>
+            </a>
+
             <!-- MENU 5: PROFIL -->
             <a href="{{ route('student.profil') }}" 
                onclick="event.preventDefault(); window.location.replace(this.href);"

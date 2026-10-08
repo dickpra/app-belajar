@@ -293,6 +293,16 @@ class StudentModuleController extends Controller
                 } catch (\Throwable $e) {
                     $kunciJawaban = $question->correct_answer ?? 'Perhatikan kembali materi.';
                 }
+
+                // 👇 UBAH SISIPAN KOSMETIK INI 👇
+                if ($question->answer_format === 'complex_fill') {
+                    // 1. Sedot semua teks jawaban dari Repeater 'options'
+                    $kunciArray = collect($question->options)->pluck('teks_pilihan')->toArray();
+                    
+                    // 2. Rangkai menjadi string yang dipisah tanda panah untuk puzzle JS
+                    $kunciJawaban = implode('  ➔  ', $kunciArray);
+                }
+                // 👆 SAMPAI SINI 👆
             }
         }
 
